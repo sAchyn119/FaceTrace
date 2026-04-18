@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FaceTrace Camera</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
+    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    nav h1 { color:#38bdf8; }
+    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; }
+    .container { padding:2rem; display:grid; grid-template-columns:2fr 1fr; gap:1.5rem; }
+    .video-box { background:#1e293b; border-radius:12px; overflow:hidden; }
+    .video-box img { width:100%; display:block; }
+    .controls { padding:1rem; display:flex; gap:1rem; }
+    .btn { padding:9px 20px; border-radius:8px; border:none; cursor:pointer; font-weight:bold; font-size:13px; }
+    .btn-red { background:#ef4444; color:#fff; }
+    .btn-gray { background:#475569; color:#fff; }
+    .sidebar { background:#1e293b; border-radius:12px; padding:1.5rem; }
+    .sidebar h3 { color:#38bdf8; margin-bottom:1rem; }
+    .att-item { background:#0f172a; padding:10px; border-radius:8px; margin-bottom:8px; font-size:13px; }
+    .att-item .name { font-weight:bold; color:#22c55e; }
+    .att-item .time { color:#64748b; font-size:12px; }
+    #count { font-size:2rem; font-weight:bold; color:#38bdf8; margin-bottom:0.5rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>👁️ FaceTrace — Live Camera</h1>
+    <div><a href="{% url 'dashboard' %}">Dashboard</a></div>
+  </nav>
+  <div class="container">
+    <div class="video-box">
+      <img src="{% url 'video_feed' %}" alt="Live Feed">
+      <div class="controls">
+        <button class="btn btn-red" onclick="stopCamera()">Stop Camera</button>
+        <button class="btn btn-gray" onclick="location.href='{% url 'dashboard' %}'">Back</button>
+      </div>
+    </div>
+    <div class="sidebar">
+      <h3>Live Attendance</h3>
+      <div id="count">0</div>
+      <div style="color:#94a3b8;font-size:13px;margin-bottom:1rem;">marked present</div>
+      <div id="att-list"></div>
+    </div>
+  </div>
+  <script>
+    function stopCamera() {
+      fetch("{% url 'stop_camera' %}").then(() => location.href = "{% url 'dashboard' %}");
+    }
+    function refreshAttendance() {
+      fetch("{% url 'attendance_status' %}")
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('count').textContent = data.count;
+          const list = document.getElementById('att-list');
+          list.innerHTML = data.attendance.map(r =>
+            `<div class="att-item"><div class="name">${r.Name}</div><div class="time">${r.Time}</div></div>`
+          ).join('');
+        });
+    }
+    setInterval(refreshAttendance, 2000);
+    refreshAttendance();
+  </script>
+</body>
+</html>

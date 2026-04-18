@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Video — FaceTrace</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#1e293b; padding:2.5rem; border-radius:12px; width:480px; }
+    h2 { color:#38bdf8; margin-bottom:0.5rem; }
+    .sub { color:#64748b; font-size:13px; margin-bottom:2rem; }
+    label { font-size:13px; color:#94a3b8; display:block; margin-bottom:4px; }
+    input, select { width:100%; padding:10px 14px; margin-bottom:1.2rem; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:14px; }
+    button { width:100%; padding:12px; background:#38bdf8; color:#0f172a; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-size:15px; }
+    button:hover { background:#7dd3fc; }
+    .hint { font-size:12px; color:#64748b; margin-top:-0.8rem; margin-bottom:1.2rem; }
+    .back { display:block; text-align:center; margin-top:1rem; color:#38bdf8; text-decoration:none; font-size:13px; }
+    .msg-err { background:#7f1d1d; color:#fca5a5; padding:8px 12px; border-radius:6px; font-size:13px; margin-bottom:1rem; }
+    .processing { display:none; text-align:center; padding:1rem; color:#38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Upload Video</h2>
+    <p class="sub">FaceTrace will scan the video and detect all known faces</p>
+
+    {% for msg in messages %}
+      <div class="msg-err">{{ msg }}</div>
+    {% endfor %}
+
+    <form method="POST" enctype="multipart/form-data" onsubmit="showProcessing()">
+      {% csrf_token %}
+      <label>Video Title</label>
+      <input type="text" name="title" placeholder="e.g. Classroom Recording 18 April" required>
+
+      <label>Video File</label>
+      <input type="file" name="video" accept="video/*" required>
+      <p class="hint">Supported: MP4, AVI, MOV, MKV — max 500MB</p>
+
+      <button type="submit">Upload & Analyze Video</button>
+    </form>
+
+    <div class="processing" id="proc">
+      Processing video... This may take a few minutes depending on video length.
+      Please wait and do not close this page.
+    </div>
+
+    <a href="{% url 'dashboard' %}" class="back">← Back to Dashboard</a>
+    <a href="{% url 'video_list' %}" class="back">View Previous Videos</a>
+  </div>
+  <script>
+    function showProcessing() {
+      document.getElementById('proc').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

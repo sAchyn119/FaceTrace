@@ -1,0 +1,10 @@
+fvenv/
+__pycache__/
+*.pyc
+db.sqlite3
+*.log
+attendance_logs/
+unknown_faces/
+*.whl
+face_model*
+.env

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video Results — FaceTrace</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
+    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    nav h1 { color:#38bdf8; font-size:1.2rem; }
+    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; font-size:13px; }
+    .container { padding:2rem; }
+    .video-title { font-size:1.3rem; font-weight:bold; margin-bottom:0.3rem; }
+    .video-sub { color:#64748b; font-size:13px; margin-bottom:2rem; }
+    .layout { display:grid; grid-template-columns:300px 1fr; gap:1.5rem; }
+    .persons-panel { background:#1e293b; border-radius:12px; padding:1.25rem; }
+    .persons-panel h3 { color:#38bdf8; margin-bottom:1rem; font-size:14px; }
+    .person-card { background:#0f172a; border-radius:10px; padding:12px; margin-bottom:10px; cursor:pointer; border:2px solid transparent; display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit; transition:border 0.15s; }
+    .person-card:hover { border-color:#38bdf8; }
+    .person-card.active { border-color:#38bdf8; background:#0c2237; }
+    .person-card img { width:52px; height:52px; border-radius:8px; object-fit:cover; }
+    .person-card .pname { font-weight:bold; font-size:14px; }
+    .person-card .pcount { font-size:12px; color:#64748b; margin-top:2px; }
+    .unknown-badge { background:#7f1d1d; color:#fca5a5; }
+    .known-badge { background:#14532d; color:#86efac; }
+    .detail-panel { background:#1e293b; border-radius:12px; padding:1.5rem; }
+    .detail-panel h3 { color:#38bdf8; margin-bottom:1.5rem; }
+    .appearance-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:1rem; }
+    .appearance-card { background:#0f172a; border-radius:10px; overflow:hidden; }
+    .appearance-card img { width:100%; height:120px; object-fit:cover; display:block; }
+    .appearance-info { padding:8px 10px; }
+    .appearance-time { font-size:13px; font-weight:bold; color:#38bdf8; }
+    .appearance-conf { font-size:11px; color:#64748b; margin-top:2px; }
+    .empty-state { text-align:center; padding:3rem; color:#475569; }
+    .stat-bar { display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .stat-pill { background:#0f172a; border-radius:8px; padding:8px 16px; font-size:13px; }
+    .stat-pill span { color:#38bdf8; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>👁️ FaceTrace — Video Analysis</h1>
+    <div>
+      <a href="{% url 'video_upload' %}">Upload Another</a>
+      <a href="{% url 'video_list' %}">All Videos</a>
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="video-title">{{ video.title }}</div>
+    <div class="video-sub">Uploaded {{ video.uploaded_at|date:"d M Y, H:i" }} · {{ total_persons }} person(s) detected</div>
+
+    <div class="stat-bar">
+      <div class="stat-pill">Total detected: <span>{{ total_persons }}</span></div>
+      {% for p in persons %}
+        <div class="stat-pill">{{ p.name }}: <span>{{ p.count }} appearance(s)</span></div>
+      {% endfor %}
+    </div>
+
+    <div class="layout">
+      <!-- Left: person list -->
+      <div class="persons-panel">
+        <h3>Detected Persons</h3>
+        {% for p in persons %}
+          <a href="?person={{ p.name }}"
+             class="person-card {% if selected == p.name %}active{% endif %}">
+            {% if p.thumb_url %}
+              <img src="{{ p.thumb_url }}" alt="{{ p.name }}">
+            {% else %}
+              <div style="width:52px;height:52px;border-radius:8px;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">👤</div>
+            {% endif %}
+            <div>
+              <div class="pname">{{ p.name }}</div>
+              <div class="pcount">{{ p.count }} appearance(s)</div>
+            </div>
+          </a>
+        {% empty %}
+          <div style="color:#64748b;font-size:13px;text-align:center;padding:2rem;">
+            No faces detected in this video.<br><br>
+            Make sure you have added student photos via Add Student first.
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Right: selected person detail -->
+      <div class="detail-panel">
+        {% if selected_data %}
+          <h3>{{ selected_data.name }} — all appearances</h3>
+          <div class="appearance-grid">
+            {% for app in selected_data.appearances %}
+              <div class="appearance-card">
+                <img src="{{ app.thumb_url }}" alt="Face at {{ app.timestamp }}">
+                <div class="appearance-info">
+                  <div class="appearance-time">{{ app.timestamp }}</div>
+                  <div class="appearance-conf">Confidence: {{ app.confidence }}%</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div style="font-size:3rem;margin-bottom:1rem;">👈</div>
+            <div style="font-size:15px;">Select a person from the left panel</div>
+            <div style="font-size:13px;color:#475569;margin-top:0.5rem;">to see all their appearances in the video with timestamps</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

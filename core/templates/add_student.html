@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Student</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#1e293b; padding:2rem; border-radius:12px; width:420px; }
+    h2 { color:#38bdf8; margin-bottom:1.5rem; }
+    label { font-size:13px; color:#94a3b8; display:block; margin-bottom:4px; }
+    input { width:100%; padding:10px 14px; margin-bottom:1.2rem; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:14px; }
+    button { width:100%; padding:11px; background:#38bdf8; color:#0f172a; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-size:15px; }
+    .msg-ok  { background:#14532d; color:#86efac; padding:8px 12px; border-radius:6px; font-size:13px; margin-bottom:1rem; }
+    .msg-err { background:#7f1d1d; color:#fca5a5; padding:8px 12px; border-radius:6px; font-size:13px; margin-bottom:1rem; }
+    .back { display:block; text-align:center; margin-top:1rem; color:#38bdf8; text-decoration:none; font-size:13px; }
+    .hint { font-size:12px; color:#64748b; margin-top:-0.8rem; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Add New Student</h2>
+    {% for msg in messages %}
+      <div class="{% if 'added' in msg.message %}msg-ok{% else %}msg-err{% endif %}">{{ msg }}</div>
+    {% endfor %}
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label>Full Name</label>
+      <input type="text" name="name" placeholder="e.g. Rahul Sharma" required>
+      <label>Roll Number</label>
+      <input type="text" name="roll_no" placeholder="e.g. CS2024001" required>
+      <label>Photo</label>
+      <input type="file" name="photo" accept="image/*" required>
+      <p class="hint">Clear front-facing photo, good lighting, face visible</p>
+      <button type="submit">Add Student & Train Model</button>
+    </form>
+    <a href="{% url 'dashboard' %}" class="back">← Back to Dashboard</a>
+  </div>
+</body>
+</html>
