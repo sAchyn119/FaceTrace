@@ -1,56 +1,110 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
   <title>Video History — FaceTrace</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
-    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
-    nav h1 { color:#38bdf8; }
-    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; font-size:13px; }
-    .container { padding:2rem; }
-    .upload-btn { display:inline-block; padding:10px 22px; background:#38bdf8; color:#0f172a; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; margin-bottom:1.5rem; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
-    .vcard { background:#1e293b; border-radius:10px; padding:1.25rem; }
-    .vcard h4 { color:#e2e8f0; margin-bottom:6px; }
-    .vcard .date { color:#64748b; font-size:12px; margin-bottom:12px; }
-    .vcard a { display:inline-block; padding:7px 16px; background:#0f172a; border-radius:8px; color:#38bdf8; text-decoration:none; font-size:13px; border:1px solid #334155; }
-    .vcard a:hover { background:#334155; }
-    .badge-done { background:#14532d; color:#86efac; padding:2px 8px; border-radius:99px; font-size:11px; margin-left:8px; }
-    .badge-pending { background:#7c2d12; color:#fdba74; padding:2px 8px; border-radius:99px; font-size:11px; margin-left:8px; }
-    .empty { text-align:center; padding:4rem; color:#475569; }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
 </head>
 <body>
-  <nav>
-    <h1>👁️ FaceTrace — Videos</h1>
-    <div>
+
+  <nav class="navbar">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <span class="logo-icon">👁️</span> FaceTrace
+    </a>
+    <div class="navbar-links">
       <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'camera' %}">Live Camera</a>
+      <a href="{% url 'attendance' %}">Reports</a>
+      <a href="{% url 'add_student' %}">Add Student</a>
+      <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
     </div>
   </nav>
+
   <div class="container">
-    <a href="{% url 'video_upload' %}" class="upload-btn">+ Upload New Video</a>
-    <div class="grid">
-      {% for v in videos %}
-        <div class="vcard">
-          <h4>{{ v.title }}
-            {% if v.processed %}
-              <span class="badge-done">Analyzed</span>
-            {% else %}
-              <span class="badge-pending">Pending</span>
-            {% endif %}
-          </h4>
-          <div class="date">{{ v.uploaded_at|date:"d M Y, H:i" }}</div>
-          {% if v.processed %}
-            <a href="{% url 'video_results' v.id %}">View Results</a>
-          {% endif %}
-        </div>
-      {% empty %}
-        <div class="empty">No videos uploaded yet.<br><br>
-          <a href="{% url 'video_upload' %}" style="color:#38bdf8;">Upload your first video</a>
-        </div>
-      {% endfor %}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <div>
+        <h2 style="font-size:1.3rem;font-weight:bold;color:var(--text-primary);">
+          🎞️ Video History
+        </h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-top:3px;">
+          Browse processed videos and open results
+        </p>
+      </div>
+      <a href="{% url 'video_upload' %}" class="btn btn-primary">+ Upload Video</a>
     </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h3>Uploaded Videos</h3>
+        <a href="{% url 'video_upload' %}">Upload another →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Uploaded</th>
+              <th>Status</th>
+              <th style="text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in videos %}
+            <tr>
+              <td style="color:var(--text-hint);">{{ forloop.counter }}</td>
+              <td>
+                <div style="font-weight:600;color:var(--text-primary);">{{ v.title }}</div>
+                <div style="font-size:11px;color:var(--text-hint);">ID: {{ v.id }}</div>
+              </td>
+              <td style="color:var(--text-muted);">{{ v.uploaded_at|date:"d M Y, H:i" }}</td>
+              <td>
+                {% if v.processed %}
+                  <span class="badge badge-done">Analyzed</span>
+                {% else %}
+                  <span class="badge badge-pending">Pending</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if v.processed %}
+                  <a href="{% url 'video_results' v.id %}"
+                     class="btn btn-ghost"
+                     style="padding:5px 14px;font-size:12px;">
+                    View Results →
+                  </a>
+                {% else %}
+                  <span style="color:var(--text-hint);font-size:12px;">Processing...</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div style="text-align:center;padding:3rem;color:var(--text-hint);">
+                  <div style="font-size:2.5rem;margin-bottom:0.75rem;">📼</div>
+                  <div style="font-size:15px;color:var(--text-muted);font-weight:500;margin-bottom:0.5rem;">
+                    No videos yet
+                  </div>
+                  <div style="font-size:13px;margin-bottom:1.25rem;">
+                    Upload a recording to analyze faces and view results here
+                  </div>
+                  <a href="{% url 'video_upload' %}" class="btn btn-primary">
+                    Upload your first video
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </body>
 </html>

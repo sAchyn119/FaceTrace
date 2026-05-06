@@ -1,0 +1,53 @@
+import os
+import cv2
+
+# ===== FACETRACE CONFIGURATION =====
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+KNOWN_FACES_DIR = os.path.join(BASE_DIR, "known_faces")
+ATTENDANCE_DIR  = os.path.join(BASE_DIR, "attendance_logs")
+UNKNOWN_DIR     = os.path.join(BASE_DIR, "unknown_faces")
+MODEL_PATH      = os.path.join(BASE_DIR, "face_model.yml")
+
+CASCADE_PATH = os.path.join(
+    cv2.data.haarcascades, "haarcascade_frontalface_default.xml"
+)
+
+# ── CONFIDENCE THRESHOLD ──────────────────────────────
+# LBPH: confidence = 100 - raw_distance
+#   Higher value = more lenient (catches faces at distance/bad lighting)
+#   Lower value  = stricter  (fewer false positives)
+#
+# FIX: Raised from 30 → 55
+#   30 was dangerously low — LBPH always finds SOME match even for
+#   completely unknown people, causing false positives like "Sachin Tendulkar"
+#   appearing for unregistered faces.
+#
+# Tune this if needed:
+#   Still getting false matches? → raise to 60
+#   Getting too many Unknown for registered faces? → lower to 50
+# Stricter than 25 (fewer bogus cross-person matches); still permissive enough
+# for mid‑40s LBPH scores when lighting is poor. Tune 45–55 if needed.
+CONFIDENCE_THRESHOLD = 42
+
+# ── LBPH DISTANCE REJECTION ───────────────────────────
+# Raw LBPH distance above this = reject as Unknown regardless of confidence.
+# This is the KEY fix for false positives — LBPH always returns SOME label,
+# so we must reject matches where raw distance is too high.
+# Lower = stricter. Typical good matches: dist < 80. Bad matches: dist > 100.
+MAX_LBPH_DISTANCE = 80.0
+
+# ── DETECTION PARAMETERS ─────────────────────────────
+SCALE_FACTOR = 1.1
+MIN_NEIGHBORS = 6
+MIN_FACE_SIZE = (80, 80)
+
+# ── QUALITY GATES ────────────────────────────────────
+MIN_RECOGNITION_FACE_SIZE = (60, 60)  # FIX: raised from 30 — tiny faces cause false matches
+BLUR_THRESHOLD = 15.0
+
+CAMERA_ID         = 0
+FRAME_SCALE       = 0.5
+FONT_SCALE        = 0.8
+BOX_COLOR_KNOWN   = (0, 255, 0)   # green BGR
+BOX_COLOR_UNKNOWN = (0, 0, 255)   # red   BGR

@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts — FaceTrace</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+</head>
+<body>
+  <div class="container fade-in">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title">Security <span>Alerts</span></div>
+        <div class="page-sub">
+          <span class="mono">Live rule-based notifications</span>
+          <span class="sep">•</span>
+          <span class="mono" id="roleLbl">—</span>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <a class="btn btn-ghost btn-sm" href="{% url 'dashboard' %}">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="section fade-in fade-in-1">
+      <div class="section-header">
+        <h3><span class="section-icon">🚨</span>Unresolved alerts</h3>
+        <a href="#" onclick="loadAlerts(); return false;">Refresh</a>
+      </div>
+
+      <div id="alertsWrap" class="activity-feed"></div>
+
+      <div id="empty" class="empty-state" style="display:none;">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-title">All clear</div>
+        <div class="empty-state-sub">No unresolved alerts right now.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function post(url) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken")
+        }
+      });
+      return await res.json();
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return "";
+    }
+
+    function renderAlert(a) {
+      const el = document.createElement("div");
+      el.className = "activity-item";
+      el.innerHTML = `
+        <div class="activity-dot red"></div>
+        <div class="activity-body">
+          <div class="activity-text">
+            <strong>${escapeHtml(a.title)}</strong>
+            <div style="margin-top:4px; color: var(--text-muted); font-size: 12px;">
+              ${escapeHtml(a.message || "")}
+            </div>
+          </div>
+          <div class="activity-time">${escapeHtml(a.created_at)}</div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            ${a.lecture_id && a.student_id ? `<button class="btn btn-danger btn-sm" data-absent="1">Mark Absent</button>` : ""}
+            <button class="btn btn-ghost btn-sm" data-resolve="1">Resolve</button>
+          </div>
+        </div>
+      `;
+
+      const resolveBtn = el.querySelector("[data-resolve]");
+      if (resolveBtn) {
+        resolveBtn.addEventListener("click", async () => {
+          await post(`/api/alerts/${a.id}/resolve/`);
+          loadAlerts();
+        });
+      }
+
+      const absentBtn = el.querySelector("[data-absent]");
+      if (absentBtn) {
+        absentBtn.addEventListener("click", async () => {
+          await post(`/api/lecture-attendance/${a.lecture_id}/${a.student_id}/absent/`);
+          await post(`/api/alerts/${a.id}/resolve/`);
+          loadAlerts();
+        });
+      }
+
+      return el;
+    }
+
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[m]));
+    }
+
+    async function loadAlerts() {
+      const wrap = document.getElementById("alertsWrap");
+      const empty = document.getElementById("empty");
+      wrap.innerHTML = "";
+      empty.style.display = "none";
+
+      const res = await fetch("{% url 'alerts_api' %}");
+      const data = await res.json();
+
+      document.getElementById("roleLbl").textContent = data.role ? `Role: ${data.role}` : "Role: —";
+
+      if (!data.alerts || data.alerts.length === 0) {
+        empty.style.display = "flex";
+        return;
+      }
+
+      for (const a of data.alerts) wrap.appendChild(renderAlert(a));
+    }
+
+    loadAlerts();
+    setInterval(loadAlerts, 5000);
+  </script>
+</body>
+</html>
+

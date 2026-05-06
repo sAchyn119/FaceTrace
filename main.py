@@ -6,8 +6,9 @@ from recognize import recognize_faces
 from attendance import mark_attendance, get_today_attendance
 from config import CAMERA_ID, FRAME_SCALE, BOX_COLOR_KNOWN, BOX_COLOR_UNKNOWN, FONT_SCALE, UNKNOWN_DIR
 
-NO_FACE_TIMEOUT   = 10   # seconds of NO face → camera auto-closes
-UNKNOWN_SAVE_GAP  = 5    # seconds between saving same unknown face
+NO_FACE_TIMEOUT  = 10   # seconds of NO face → camera auto-closes
+UNKNOWN_SAVE_GAP = 5    # seconds between saving same unknown face position
+
 
 def draw_results(frame, results):
     scale = int(1 / FRAME_SCALE)
@@ -24,8 +25,10 @@ def draw_results(frame, results):
                     cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE * 0.6, (255, 255, 255), 1)
     return frame
 
+
 def save_unknown_face(frame, top, right, bottom, left):
-    os.makedirs(UNKNOWN_DIR, exist_ok=1)
+    # FIX: exist_ok=True (bool) instead of exist_ok=1
+    os.makedirs(UNKNOWN_DIR, exist_ok=True)
     scale     = int(1 / FRAME_SCALE)
     top       *= scale
     right     *= scale
@@ -34,10 +37,12 @@ def save_unknown_face(frame, top, right, bottom, left):
     face_crop = frame[top:bottom, left:right]
     if face_crop.size == 0:
         return
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Include microseconds so multiple saves in the same second do not share one path.
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     filename  = os.path.join(UNKNOWN_DIR, f"unknown_{timestamp}.jpg")
     cv2.imwrite(filename, face_crop)
     print(f"[UNKNOWN] Saved: {filename}")
+
 
 def run():
     recognizer, label_map, face_cascade = load_known_faces()
@@ -47,13 +52,27 @@ def run():
 
     print(f"[INFO] Loaded {len(label_map)} person(s): {list(label_map.values())}")
 
-    cap = cv2.VideoCapture(CAMERA_ID)
+    # Windows-friendly open: prefer DirectShow (faster/more reliable on many machines)
+    backend = cv2.CAP_DSHOW if hasattr(cv2, "CAP_DSHOW") else cv2.CAP_ANY
+    cap = cv2.VideoCapture(CAMERA_ID, backend)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(CAMERA_ID)
+
     if not cap.isOpened():
         print(f"\n[ERROR] Cannot open camera (id={CAMERA_ID})\n")
         return
 
+    try:
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    except Exception:
+        pass
+
+    # Warm up a few frames (reduces slow/black first frame)
+    for _ in range(8):
+        cap.read()
+
     print("\n[FaceTrace] Running...")
-    print(f"  → Auto-closes after {NO_FACE_TIMEOUT}s of no face detected")
+    print(f"  -> Auto-closes after {NO_FACE_TIMEOUT}s of no face detected")
     print(f"  → Unknown faces saved to: {UNKNOWN_DIR}")
     print("  → Press Q to quit manually\n")
 
@@ -68,7 +87,7 @@ def run():
 
         frame       = cv2.flip(frame, 1)
         small_frame = cv2.resize(frame, (0, 0), fx=FRAME_SCALE, fy=FRAME_SCALE)
-        results     = recognize_faces(small_frame, recognizer, label_map, face_cascade)
+        results     = recognize_faces(small_frame, recognizer, label_map, face_cascade, save_unknown=False)
         now         = datetime.now()
 
         if results:
@@ -78,7 +97,7 @@ def run():
             if name != "Unknown":
                 mark_attendance(name)
             else:
-                pos_key   = f"{left//50}_{top//50}"
+                pos_key   = f"{left // 50}_{top // 50}"
                 last_save = last_unknown_save.get(pos_key)
                 if last_save is None or (now - last_save).seconds >= UNKNOWN_SAVE_GAP:
                     save_unknown_face(frame, top, right, bottom, left)
@@ -91,11 +110,10 @@ def run():
         cv2.putText(frame, f"Present today: {len(attendance)}",
                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
-        if seconds_no_face > 0:
+        if 0 < seconds_no_face < NO_FACE_TIMEOUT:
             remaining = NO_FACE_TIMEOUT - seconds_no_face
-            if remaining > 0:
-                cv2.putText(frame, f"No face... closing in {remaining}s",
-                            (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+            cv2.putText(frame, f"No face... closing in {remaining}s",
+                        (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
 
         cv2.imshow("FaceTrace — Face Recognition Attendance", frame)
 
@@ -113,5 +131,16 @@ def run():
     for r in get_today_attendance():
         print(f"  {r['Name']} — {r['Time']}")
 
+
 if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "runserver":
+        print(
+            "[FaceTrace] `main.py` is the desktop OpenCV app, not Django.\n"
+            "For the web UI, run:\n  python manage.py runserver\n",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     run()

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FaceTrace · Students</title>
+  <style>
+    :root {
+      --bg-primary:    #0a0e1a;
+      --bg-secondary:  #111827;
+      --bg-card:       #1a2235;
+      --accent:        #00d4ff;
+      --accent-green:  #00ff88;
+      --accent-red:    #ff4757;
+      --accent-yellow: #ffa502;
+      --text-primary:  #e8f4f8;
+      --text-muted:    #6b7a99;
+      --border:        #1e2d45;
+      --radius:        12px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      color: var(--accent);
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-links { display:flex; gap:1rem; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: all .2s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      background: var(--bg-card);
+      color: var(--accent);
+    }
+
+    /* ── MAIN ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .page-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+    .page-subtitle { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+    .btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s;
+    }
+    .btn-primary { background: var(--accent); color: #0a0e1a; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-danger  { background: var(--accent-red); color: #fff; }
+    .btn-danger:hover { opacity: .85; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ── SEARCH ── */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+    .search-bar input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border .2s;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar button {
+      background: var(--accent);
+      color: #0a0e1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-icon { font-size: 1.8rem; }
+    .stat-val { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #0d1525; }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,212,255,.04); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(0,255,136,.15); color: var(--accent-green); }
+    .badge-yellow { background: rgba(255,165,2,.15); color: var(--accent-yellow); }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
+    .avatar-placeholder {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .name-cell { display:flex; align-items:center; gap:10px; }
+
+    /* ── EMPTY ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    /* ── MESSAGES ── */
+    .messages { margin-bottom: 1rem; }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .alert-success { background: rgba(0,255,136,.12); border: 1px solid var(--accent-green); color: var(--accent-green); }
+    .alert-error   { background: rgba(255,71,87,.12);  border: 1px solid var(--accent-red);   color: var(--accent-red); }
+
+    /* ── DELETE MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+    }
+    .modal-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+    .modal-text  { color: var(--text-muted); font-size: 13px; margin-bottom: 1.5rem; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-cancel { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">👁️ FaceTrace</div>
+  <div class="nav-links">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'camera' %}">Camera</a>
+    <a href="{% url 'student_list' %}" class="active">Students</a>
+    <a href="{% url 'attendance' %}">Attendance</a>
+    <a href="{% url 'logout' %}">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- MESSAGES -->
+  {% if messages %}
+  <div class="messages">
+    {% for msg in messages %}
+    <div class="alert {% if msg.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">👥 REGISTERED STUDENTS</div>
+      <div class="page-subtitle">Manage and view all registered faces</div>
+    </div>
+    <a href="{% url 'add_student' %}" class="btn btn-primary">➕ Add Student</a>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div>
+        <div class="stat-val">{{ students|length }}</div>
+        <div class="stat-label">Total Students</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div>
+        <div class="stat-val" style="color:var(--accent-green)">
+          {{ students|length }}
+        </div>
+        <div class="stat-label">Face Registered</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧠</div>
+      <div>
+        <div class="stat-val" style="color:var(--accent-yellow)">Active</div>
+        <div class="stat-label">Model Status</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <form method="get" class="search-bar">
+    <input type="text" name="q" placeholder="🔍 Search by name or roll number…" value="{{ query }}"/>
+    <button type="submit">Search</button>
+    {% if query %}<a href="{% url 'student_list' %}" class="btn btn-cancel">✕ Clear</a>{% endif %}
+  </form>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    {% if students %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student</th>
+          <th>Roll No</th>
+          <th>Branch</th>
+          <th>Year</th>
+          <th>Face Status</th>
+          <th>Photos</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ forloop.counter }}</td>
+          <td>
+            <div class="name-cell">
+              {% if s.photo %}
+                <img src="{{ s.photo.url }}" class="avatar" alt="{{ s.name }}"/>
+              {% else %}
+                <div class="avatar-placeholder">👤</div>
+              {% endif %}
+              <div>
+                <div style="font-weight:600">{{ s.name }}</div>
+                <div style="font-size:11px;color:var(--text-muted)">{{ s.email|default:"-" }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-family:monospace;color:var(--accent)">{{ s.roll_no }}</td>
+          <td>{{ s.branch|default:"-" }}</td>
+          <td>{{ s.year|default:"-" }}</td>
+          <td>
+            {% if s.face_registered %}
+              <span class="badge badge-green">✓ Registered</span>
+            {% else %}
+              <span class="badge badge-yellow">⚠ Pending</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text-muted)">
+            {{ s.face_image_count|default:"0" }} photos
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <a href="{% url 'capture_photos' s.id %}" class="btn btn-sm btn-primary">📸 Photos</a>
+              <button
+                class="btn btn-sm btn-danger"
+                onclick="confirmDelete('{{ s.id }}', '{{ s.name }}')">
+                🗑 Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">👥</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:.5rem">No students found</div>
+      <div style="font-size:13px;margin-bottom:1rem">
+        {% if query %}No results for "{{ query }}"{% else %}No students registered yet{% endif %}
+      </div>
+      <a href="{% url 'add_student' %}" class="btn btn-primary">➕ Add First Student</a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Delete Student?</div>
+    <div class="modal-text" id="deleteModalText">
+      This will permanently delete the student and all their face photos. The model will be retrained automatically.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <form id="deleteForm" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑 Yes, Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function confirmDelete(sid, name) {
+    document.getElementById('deleteModalText').textContent =
+      `This will permanently delete "${name}" and all their face photos. The model will be retrained automatically.`;
+    document.getElementById('deleteForm').action = `/students/${sid}/delete/`;
+    document.getElementById('deleteModal').classList.add('active');
+  }
+  function closeModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+  }
+  // Close on backdrop click
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+
+</body>
+</html>

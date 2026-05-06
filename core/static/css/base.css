@@ -1,0 +1,198 @@
+/* ===== FACETRACE BASE STYLES — Enhanced ===== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Core backgrounds */
+  --bg-primary:    #080e1a;
+  --bg-secondary:  #0f1929;
+  --bg-card:       #111d2e;
+  --bg-input:      #080e1a;
+  --bg-hover:      #162035;
+
+  /* Text */
+  --text-primary:  #e8f0fe;
+  --text-muted:    #8ea3bf;
+  --text-hint:     #3d556e;
+
+  /* Accent — electric cyan */
+  --accent:        #00d4ff;
+  --accent-hover:  #5ce7ff;
+  --accent-dark:   #001f2e;
+  --accent-glow:   rgba(0, 212, 255, 0.15);
+  --accent-border: rgba(0, 212, 255, 0.3);
+
+  /* Status colors */
+  --green:         #00e676;
+  --green-bg:      #002a14;
+  --green-text:    #69ffb0;
+  --green-glow:    rgba(0, 230, 118, 0.12);
+
+  --red:           #ff4d6d;
+  --red-bg:        #2a0010;
+  --red-text:      #ff8fa3;
+  --red-glow:      rgba(255, 77, 109, 0.12);
+
+  --yellow:        #ffc947;
+  --yellow-bg:     #2a1a00;
+  --yellow-text:   #ffe082;
+
+  --purple:        #b57aff;
+  --purple-bg:     #1a0033;
+  --purple-text:   #d4a8ff;
+
+  --orange:        #ff8c42;
+  --orange-bg:     #2a1200;
+  --orange-text:   #ffb380;
+
+  /* Borders */
+  --border:        #1e2f45;
+  --border-light:  #152035;
+  --border-accent: rgba(0, 212, 255, 0.2);
+
+  /* Radius */
+  --radius-xs:     4px;
+  --radius-sm:     6px;
+  --radius-md:     10px;
+  --radius-lg:     14px;
+  --radius-xl:     20px;
+  --radius-2xl:    28px;
+
+  /* Shadows */
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.4);
+  --shadow:        0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg:     0 8px 40px rgba(0,0,0,0.6);
+  --shadow-accent: 0 0 24px rgba(0, 212, 255, 0.15);
+  --shadow-green:  0 0 20px rgba(0, 230, 118, 0.12);
+
+  /* Typography */
+  --font-display:  'Syne', sans-serif;
+  --font-mono:     'Space Mono', monospace;
+  --font-body:     'Inter', sans-serif;
+
+  /* Transitions */
+  --transition:    0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.65;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Subtle grid texture */
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Noise overlay on body */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* All content above noise */
+body > * { position: relative; z-index: 1; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+a:hover { color: var(--accent-hover); }
+
+img { max-width: 100%; display: block; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+  transition: background var(--transition);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent-border); }
+
+/* ===== UTILITY CLASSES ===== */
+.mono { font-family: var(--font-mono); }
+.display { font-family: var(--font-display); }
+
+/* Glowing divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-border), transparent);
+  margin: 1.5rem 0;
+}
+
+/* Subtle glow dot */
+.glow-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green), 0 0 16px rgba(0, 230, 118, 0.4);
+  animation: glow-pulse 2s infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green), 0 0 16px rgba(0,230,118,0.4); }
+  50%       { opacity: 0.6; box-shadow: 0 0 4px var(--green), 0 0 8px rgba(0,230,118,0.2); }
+}
+
+/* Fade-in animation for page load */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeInUp 0.4s var(--transition) both; }
+.fade-in-1 { animation-delay: 0.05s; }
+.fade-in-2 { animation-delay: 0.1s; }
+.fade-in-3 { animation-delay: 0.15s; }
+.fade-in-4 { animation-delay: 0.2s; }
+.fade-in-5 { animation-delay: 0.25s; }
+
+/* ===== ROLE BADGE ===== */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.role-admin   { background: rgba(181,122,255,0.15); color: var(--purple-text); border: 1px solid rgba(181,122,255,0.3); }
+.role-faculty { background: rgba(0,212,255,0.1);    color: var(--accent);      border: 1px solid var(--accent-border); }
+.role-hod     { background: rgba(255,201,71,0.12);  color: var(--yellow-text); border: 1px solid rgba(255,201,71,0.3); }
+.role-student { background: rgba(0,230,118,0.1);    color: var(--green-text);  border: 1px solid rgba(0,230,118,0.25); }

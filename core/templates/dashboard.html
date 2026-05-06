@@ -1,84 +1,156 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>FaceTrace Dashboard</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
-    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
-    nav h1 { color:#38bdf8; font-size:1.3rem; }
-    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; font-size:14px; }
-    nav a:hover { color:#38bdf8; }
-    .container { padding:2rem; }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
-    .stat { background:#1e293b; border-radius:10px; padding:1.5rem; text-align:center; }
-    .stat .num { font-size:2.2rem; font-weight:bold; color:#38bdf8; }
-    .stat .lbl { color:#94a3b8; font-size:12px; margin-top:4px; }
-    .actions { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
-    .action-btn { background:#1e293b; border-radius:10px; padding:1.25rem; text-align:center; text-decoration:none; color:#e2e8f0; border:2px solid transparent; transition:border 0.15s; }
-    .action-btn:hover { border-color:#38bdf8; }
-    .action-btn .icon { font-size:1.8rem; margin-bottom:0.5rem; }
-    .action-btn .albl { font-size:13px; font-weight:bold; color:#38bdf8; }
-    .action-btn .asub { font-size:11px; color:#64748b; margin-top:3px; }
-    .section { background:#1e293b; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem; }
-    .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-    .section-header h3 { color:#38bdf8; font-size:14px; }
-    .section-header a { color:#64748b; font-size:12px; text-decoration:none; }
-    .section-header a:hover { color:#38bdf8; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { background:#0f172a; color:#94a3b8; padding:9px 10px; text-align:left; }
-    td { padding:9px 10px; border-bottom:1px solid #0f172a; }
-    tr:last-child td { border-bottom:none; }
-    .badge-present { background:#14532d; color:#86efac; padding:2px 9px; border-radius:99px; font-size:11px; }
-    .badge-done { background:#1e3a5f; color:#7dd3fc; padding:2px 9px; border-radius:99px; font-size:11px; }
-    .badge-pending { background:#7c2d12; color:#fdba74; padding:2px 9px; border-radius:99px; font-size:11px; }
-    .upload-box { background:#1e293b; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem; border:2px dashed #334155; }
-    .upload-box h3 { color:#38bdf8; font-size:14px; margin-bottom:0.4rem; }
-    .upload-box p { color:#64748b; font-size:13px; margin-bottom:1.25rem; }
-    .upload-form { display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap; }
-    .upload-form input[type=text] { flex:1; min-width:180px; padding:9px 13px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:13px; }
-    .upload-form input[type=file] { flex:2; min-width:200px; padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#94a3b8; font-size:13px; }
-    .upload-form button { padding:9px 22px; background:#38bdf8; color:#0f172a; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px; }
-    .upload-form button:hover { background:#7dd3fc; }
-    #proc { display:none; margin-top:1rem; color:#38bdf8; font-size:13px; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FaceTrace — Dashboard</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
 </head>
+
 <body>
-  <nav>
-    <h1>👁️ FaceTrace</h1>
-    <div>
-      <a href="{% url 'camera' %}">Live Camera</a>
-      <a href="{% url 'video_upload' %}">Upload Video</a>
-      <a href="{% url 'attendance' %}">Reports</a>
-      <a href="{% url 'add_student' %}">Add Student</a>
-      <a href="{% url 'logout' %}">Logout</a>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <span class="logo-icon">👁️</span> FaceTrace
+      <span class="brand-dot"></span>
+    </a>
+    <div class="navbar-links">
+      <div class="cam-status">
+        <div class="cam-dot live"></div> Live
+      </div>
+      <div class="navbar-role">
+        <div class="role-avatar">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="role-info">
+          <span class="role-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span class="role-type">
+            {% if request.user.is_staff %}
+            Administrator
+            {% elif request.session.role == "management" %}
+            {{ request.session.designation|title }}
+            {% elif request.session.role == "student" %}
+            Student
+            {% else %}
+            User
+            {% endif %}
+          </span>
+        </div>
+      </div>
+      <a href="{% url 'camera' %}" class="{% if request.resolver_match.url_name == 'camera' %}active{% endif %}">📷 Live
+        Camera</a>
+      <a href="{% url 'video_upload' %}"
+        class="{% if request.resolver_match.url_name == 'video_upload' %}active{% endif %}">🎥 Upload</a>
+      <a href="{% url 'attendance' %}"
+        class="{% if request.resolver_match.url_name == 'attendance' %}active{% endif %}">📋 Reports</a>
+      <a href="{% url 'add_student' %}"
+        class="{% if request.resolver_match.url_name == 'add_student' %}active{% endif %}">➕ Add Student</a>
+      <a href="{% url 'student_list' %}"
+        class="{% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">👥 Students</a>
+      <a href="{% url 'logout' %}" class="btn-logout">⏻ Logout</a>
     </div>
   </nav>
 
+  <!-- ===== BREADCRUMB ===== -->
+  <div class="breadcrumb">
+    <span>FaceTrace</span>
+    <span class="sep">›</span>
+    <span class="current">Dashboard</span>
+    <span class="sep">·</span>
+    <span>{{ today }}</span>
+  </div>
+
   <div class="container">
 
-    <!-- Stats -->
-    <div class="stats">
-      <div class="stat">
-        <div class="num">{{ total }}</div>
-        <div class="lbl">Total Students</div>
+    <!-- ===== PAGE HEADER ===== -->
+    <div class="page-header fade-in">
+      <div class="page-header-left">
+        <div class="page-title">Overview <span>Dashboard</span></div>
+        <div class="page-sub">
+          <span class="glow-dot"></span>
+          Real-time attendance tracking
+          <span class="sep">·</span>
+          Last updated just now
+        </div>
       </div>
-      <div class="stat">
-        <div class="num" style="color:#22c55e">{{ present }}</div>
-        <div class="lbl">Present Today</div>
-      </div>
-      <div class="stat">
-        <div class="num" style="color:#ef4444">{{ absent }}</div>
-        <div class="lbl">Absent Today</div>
-      </div>
-      <div class="stat">
-        <div class="num" style="color:#a78bfa">{{ total_videos }}</div>
-        <div class="lbl">Videos Analyzed</div>
+      <div class="page-header-actions">
+        <a href="{% url 'attendance' %}" class="btn btn-ghost btn-sm">📋 Full Report</a>
+        <a href="{% url 'camera' %}" class="btn btn-primary btn-sm">📷 Start Camera</a>
       </div>
     </div>
 
-    <!-- Quick action buttons -->
-    <div class="actions">
+    <!-- ===== STATS GRID ===== -->
+    <div class="stats-grid fade-in fade-in-1">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="num">{{ total }}</div>
+        <div class="lbl">Total Students</div>
+        <div class="stat-delta neutral">— registered faces</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="num green">{{ present }}</div>
+        <div class="lbl">Present Today</div>
+        <div class="stat-delta up">↑ live count</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon">❌</div>
+        <div class="num red">{{ absent }}</div>
+        <div class="lbl">Absent Today</div>
+        <div class="stat-delta down">↓ not detected</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">🎥</div>
+        <div class="num purple">{{ total_videos }}</div>
+        <div class="lbl">Videos Analyzed</div>
+        <div class="stat-delta neutral">— all time</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon">🧠</div>
+        <div class="num yellow">{{ total }}</div>
+        <div class="lbl">Trained Faces</div>
+        <div class="stat-delta neutral">— in model</div>
+      </div>
+    </div>
+
+    <!-- ===== ATTENDANCE PROGRESS ===== -->
+    <div class="attendance-bar fade-in fade-in-2">
+      <div class="attendance-bar-header">
+        <div>
+          <div class="attendance-bar-label">Today's Attendance Rate</div>
+          <div style="font-size:11px;color:var(--text-hint);font-family:var(--font-mono);margin-top:3px;">
+            {{ present }} of {{ total }} students present
+          </div>
+        </div>
+        <div class="attendance-bar-pct" id="att-pct">
+          {% if total > 0 %}{{ present|floatformat:0 }}%{% else %}0%{% endif %}
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="att-bar"
+          style="width: {% if total > 0 %}{% widthratio present total 100 %}%{% else %}0%{% endif %}">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:10px;color:var(--green);font-family:var(--font-mono);">
+          ● {{ present }} Present
+        </span>
+        <span style="font-size:10px;color:var(--red);font-family:var(--font-mono);">
+          ● {{ absent }} Absent
+        </span>
+      </div>
+    </div>
+
+    <!-- ===== ACTION GRID ===== -->
+    <div class="action-grid fade-in fade-in-2">
       <a href="{% url 'camera' %}" class="action-btn">
         <div class="icon">📷</div>
         <div class="albl">Live Camera</div>
@@ -99,91 +171,297 @@
         <div class="albl">Reports</div>
         <div class="asub">View attendance logs</div>
       </a>
+      <a href="{% url 'video_list' %}" class="action-btn">
+        <div class="icon">🗂️</div>
+        <div class="albl">Video History</div>
+        <div class="asub">All analyzed videos</div>
+      </a>
     </div>
 
-    <!-- Video upload box -->
-    <div class="upload-box">
+    <!-- ===== QUICK UPLOAD ===== -->
+    <div class="upload-box fade-in fade-in-3">
       <h3>🎥 Quick Video Upload</h3>
       <p>Upload any recorded video — FaceTrace will scan and identify all known faces with timestamps</p>
-      <form method="POST" action="{% url 'video_upload' %}" enctype="multipart/form-data"
-            onsubmit="document.getElementById('proc').style.display='block'">
+      <form method="POST" action="{% url 'video_upload' %}" enctype="multipart/form-data" onsubmit="showProc()">
         {% csrf_token %}
         <div class="upload-form">
-          <input type="text" name="title" placeholder="Video title e.g. Lecture Recording April 18" required>
+          <input type="text" name="title" placeholder="Video title — e.g. Lecture April 21" required>
           <input type="file" name="video" accept="video/*" required>
-          <button type="submit">Upload & Analyze</button>
+          <button type="submit">⚡ Upload & Analyze</button>
         </div>
       </form>
-      <div id="proc">
-        ⏳ Processing video... please wait, do not close this page.
+      <div class="proc-msg" id="proc">
+        ⏳ Processing video… please wait, do not close this page.
       </div>
     </div>
 
-    <!-- Today's attendance + Recent videos side by side -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <!-- ===== TWO COLUMN ===== -->
+    <div class="two-col fade-in fade-in-3">
 
-      <!-- Today's attendance -->
+      <!-- Today's Attendance -->
       <div class="section">
         <div class="section-header">
-          <h3>Today's Attendance — {{ today }}</h3>
+          <h3><span class="section-icon">📋</span> Today's Attendance — {{ today }}</h3>
           <a href="{% url 'attendance' %}">View all →</a>
         </div>
-        <table>
-          <tr><th>Name</th><th>Roll No</th><th>Time</th><th>Status</th></tr>
-          {% for record in attendance %}
-          <tr>
-            <td>{{ record.student.name }}</td>
-            <td style="color:#64748b;">{{ record.student.roll_no }}</td>
-            <td style="color:#64748b;">{{ record.time }}</td>
-            <td><span class="badge-present">Present</span></td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4" style="color:#475569;text-align:center;padding:2rem;">
-              No attendance marked yet today
-            </td>
-          </tr>
-          {% endfor %}
-        </table>
+
+        <div class="table-toolbar">
+          <div class="table-toolbar-left">
+            <div class="table-count">
+              <span id="present-count">{{ present }}</span> present today
+            </div>
+          </div>
+          <div class="table-toolbar-right">
+            <span class="stat-pill green"><span>{{ present }}</span> present</span>
+            <span class="stat-pill red"><span>{{ absent }}</span> absent</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Roll No</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in attendance %}
+              <tr>
+                <td>
+                  <div class="cell-person">
+                    <div class="avatar-placeholder">
+                      {{ record.student.name|first|upper }}
+                    </div>
+                    <div class="cell-person-info">
+                      <span class="cell-person-name">{{ record.student.name }}</span>
+                      <span class="cell-person-sub">{{ record.student.branch|default:"—" }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-num">{{ record.student.roll_no }}</td>
+                <td class="cell-time">{{ record.time }}</td>
+                <td>
+                  <span class="badge badge-present">
+                    <span class="badge-dot"></span> Present
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="table-empty">
+                  <span class="table-empty-icon">📭</span>
+                  <span class="table-empty-text">No attendance marked yet today</span>
+                  <span class="table-empty-sub">Start the camera to begin detection</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Recent videos -->
+      <!-- Recent Videos -->
       <div class="section">
         <div class="section-header">
-          <h3>Recent Video Analyses</h3>
+          <h3><span class="section-icon">🎥</span> Recent Video Analyses</h3>
           <a href="{% url 'video_list' %}">View all →</a>
         </div>
-        <table>
-          <tr><th>Title</th><th>Date</th><th>Status</th><th></th></tr>
-          {% for v in videos %}
-          <tr>
-            <td>{{ v.title }}</td>
-            <td style="color:#64748b;font-size:12px;">{{ v.uploaded_at|date:"d M, H:i" }}</td>
-            <td>
-              {% if v.processed %}
-                <span class="badge-done">Done</span>
-              {% else %}
-                <span class="badge-pending">Pending</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if v.processed %}
-                <a href="{% url 'video_results' v.id %}"
-                   style="color:#38bdf8;font-size:12px;text-decoration:none;">Results →</a>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4" style="color:#475569;text-align:center;padding:2rem;">
-              No videos uploaded yet
-            </td>
-          </tr>
-          {% endfor %}
-        </table>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in videos %}
+              <tr>
+                <td>
+                  <div style="font-weight:600;font-size:13px;color:var(--text-primary);">
+                    {{ v.title }}
+                  </div>
+                </td>
+                <td class="cell-time">{{ v.uploaded_at|date:"d M, H:i" }}</td>
+                <td>
+                  {% if v.processed %}
+                  <span class="badge badge-done">
+                    <span class="badge-dot"></span> Done
+                  </span>
+                  {% else %}
+                  <span class="badge badge-pending">
+                    <span class="badge-dot"></span> Pending
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="cell-actions">
+                    {% if v.processed %}
+                    <a href="{% url 'video_results' v.id %}" class="action-link">Results →</a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="table-empty">
+                  <span class="table-empty-icon">🎬</span>
+                  <span class="table-empty-text">No videos uploaded yet</span>
+                  <span class="table-empty-sub">Upload a video to analyze attendance</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
+
+    <!-- ===== BOTTOM ROW — Activity + Quick Links ===== -->
+    <div class="two-col fade-in fade-in-4">
+
+      <!-- Recent Activity -->
+      <div class="section">
+        <div class="section-header">
+          <h3><span class="section-icon">⚡</span> Recent Activity</h3>
+        </div>
+        <div class="activity-feed">
+          {% for record in attendance|slice:":6" %}
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-body">
+              <div class="activity-text">
+                <strong>{{ record.student.name }}</strong> marked present
+              </div>
+              <div class="activity-time">{{ record.time }} · Roll: {{ record.student.roll_no }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="empty-state" style="padding:2rem 1rem;">
+            <div class="empty-state-icon">💤</div>
+            <div class="empty-state-title">No activity yet</div>
+            <div class="empty-state-sub">Start camera to detect faces</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Quick Links & System Status -->
+      <div class="section">
+        <div class="section-header">
+          <h3><span class="section-icon">🔗</span> Quick Links</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;">
+          <a href="{% url 'add_student' %}" class="quick-link">
+            <span class="ql-icon">👤</span> Add New Student
+          </a>
+          <a href="{% url 'camera' %}" class="quick-link">
+            <span class="ql-icon">📷</span> Open Live Camera
+          </a>
+          <a href="{% url 'video_upload' %}" class="quick-link">
+            <span class="ql-icon">🎥</span> Upload Video for Analysis
+          </a>
+          <a href="{% url 'attendance' %}" class="quick-link">
+            <span class="ql-icon">📋</span> View Full Attendance Report
+          </a>
+          <a href="{% url 'video_list' %}" class="quick-link">
+            <span class="ql-icon">🗂️</span> Browse Video History
+          </a>
+        </div>
+
+        <!-- System status -->
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-hint);
+                    text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem;">
+          System Status
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding:8px 12px;background:var(--bg-card);border-radius:var(--radius-md);
+                      border:1px solid var(--border-light);">
+            <span style="font-size:12px;color:var(--text-muted);">Face Recognition</span>
+            <span class="badge badge-live"><span class="badge-dot"></span> Online</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding:8px 12px;background:var(--bg-card);border-radius:var(--radius-md);
+                      border:1px solid var(--border-light);">
+            <span style="font-size:12px;color:var(--text-muted);">AI Model</span>
+            <span class="badge badge-done"><span class="badge-dot"></span> Loaded</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding:8px 12px;background:var(--bg-card);border-radius:var(--radius-md);
+                      border:1px solid var(--border-light);">
+            <span style="font-size:12px;color:var(--text-muted);">Camera Feed</span>
+            <span class="badge badge-live" id="cam-status-badge">
+              <span class="badge-dot"></span> Active
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
+
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // Show processing message
+    function showProc() {
+      const el = document.getElementById('proc');
+      el.classList.add('show');
+      el.style.display = 'flex';
+    }
+
+    // Show toast
+    function showToast(msg, type = 'info') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.innerHTML = `
+        <span class="toast-icon">${icons[type]}</span>
+        <span class="toast-text">${msg}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+      c.appendChild(t);
+      setTimeout(() => {
+        t.classList.add('removing');
+        setTimeout(() => t.remove(), 300);
+      }, 4000);
+    }
+
+    // Auto-refresh attendance every 5 seconds
+    function refreshStatus() {
+      fetch("{% url 'attendance_status' %}")
+        .then(r => r.json())
+        .then(data => {
+          const el = document.getElementById('present-count');
+          if (el && data.count !== undefined) el.textContent = data.count;
+        })
+        .catch(() => { });
+    }
+
+    setInterval(refreshStatus, 5000);
+
+    // Animate progress bar on load
+    window.addEventListener('load', () => {
+      const bar = document.getElementById('att-bar');
+      if (bar) {
+        const w = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => { bar.style.width = w; }, 300);
+      }
+    });
+  </script>
+
 </body>
+
 </html>

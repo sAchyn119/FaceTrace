@@ -1,65 +1,779 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>FaceTrace Camera</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Camera — FaceTrace</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/camera.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
-    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
-    nav h1 { color:#38bdf8; }
-    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; }
-    .container { padding:2rem; display:grid; grid-template-columns:2fr 1fr; gap:1.5rem; }
-    .video-box { background:#1e293b; border-radius:12px; overflow:hidden; }
-    .video-box img { width:100%; display:block; }
-    .controls { padding:1rem; display:flex; gap:1rem; }
-    .btn { padding:9px 20px; border-radius:8px; border:none; cursor:pointer; font-weight:bold; font-size:13px; }
-    .btn-red { background:#ef4444; color:#fff; }
-    .btn-gray { background:#475569; color:#fff; }
-    .sidebar { background:#1e293b; border-radius:12px; padding:1.5rem; }
-    .sidebar h3 { color:#38bdf8; margin-bottom:1rem; }
-    .att-item { background:#0f172a; padding:10px; border-radius:8px; margin-bottom:8px; font-size:13px; }
-    .att-item .name { font-weight:bold; color:#22c55e; }
-    .att-item .time { color:#64748b; font-size:12px; }
-    #count { font-size:2rem; font-weight:bold; color:#38bdf8; margin-bottom:0.5rem; }
+
+    body { overflow: hidden; }
+
+    /* ===== CAMERA PAGE LAYOUT ===== */
+    .cam-page {
+      height: calc(100vh - 62px);
+      display: flex;
+      flex-direction: column;
+      padding: 0.85rem 1.25rem;
+      gap: 0.75rem;
+    }
+
+    /* ===== TOOLBAR ===== */
+    .cam-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .cam-toolbar-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cam-toolbar-title .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--green-bg);
+      border: 1px solid rgba(0,230,118,0.25);
+      color: var(--green-text);
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+
+    .live-badge .badge-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    .toolbar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .toolbar-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--accent-border);
+    }
+
+    .toolbar-btn.danger {
+      border-color: rgba(255,77,109,0.3);
+      color: var(--red-text);
+    }
+
+    .toolbar-btn.danger:hover {
+      background: var(--red-bg);
+      border-color: rgba(255,77,109,0.5);
+    }
+
+    .toolbar-btn.primary {
+      background: var(--accent);
+      color: var(--bg-primary);
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .toolbar-btn.primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 16px rgba(0,212,255,0.25);
+    }
+
+    /* Clock */
+    .cam-clock {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .cam-content {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 0.75rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ===== FEED PANEL ===== */
+    .feed-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 0;
+    }
+
+    /* Feed box */
+    .feed-box {
+      flex: 1;
+      background: #000;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 2px solid var(--green);
+      position: relative;
+      min-height: 0;
+      box-shadow: 0 0 30px rgba(0,230,118,0.08), var(--shadow);
+    }
+
+    .feed-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Feed overlay — top */
+    .feed-overlay-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 10px 14px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .feed-cam-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feed-live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      animation: pulse 1s infinite;
+    }
+
+    .feed-rec-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255,77,109,0.8);
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+
+    /* Feed overlay — bottom */
+    .feed-overlay-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 14px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .feed-faces-count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feed-faces-count .fc-num {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .feed-timestamp {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Scanning line animation */
+    .feed-scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.6;
+      animation: scanLine 3s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes scanLine {
+      0%   { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    /* Corner brackets */
+    .feed-corner {
+      position: absolute;
+      width: 20px; height: 20px;
+      pointer-events: none;
+    }
+
+    .feed-corner.tl { top: 10px; left: 10px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .feed-corner.tr { top: 10px; right: 10px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+    .feed-corner.bl { bottom: 10px; left: 10px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .feed-corner.br { bottom: 10px; right: 10px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+    /* ===== STATS ROW ===== */
+    .cam-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+
+    .cam-stat {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-light);
+      text-align: center;
+    }
+
+    .cam-stat-num {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .cam-stat-num.green  { color: var(--green); }
+    .cam-stat-num.red    { color: var(--red); }
+    .cam-stat-num.yellow { color: var(--yellow); }
+
+    .cam-stat-lbl {
+      font-size: 9px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ===== SIDE PANEL ===== */
+    .side-panel {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .side-panel-header {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      background: rgba(15,25,41,0.4);
+    }
+
+    .side-panel-header h3 {
+      font-family: var(--font-display);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .side-live-count {
+      font-size: 11px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      background: var(--bg-card);
+      padding: 2px 8px;
+      border-radius: 99px;
+      border: 1px solid var(--border-light);
+    }
+
+    .side-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.6rem;
+    }
+
+    .side-panel-body::-webkit-scrollbar { width: 3px; }
+    .side-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* Detection cards */
+    .det-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 9px 11px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      animation: fadeInUp 0.3s ease both;
+    }
+
+    .det-card:hover {
+      border-color: var(--accent-border);
+      background: var(--bg-hover);
+    }
+
+    .det-card.unknown { border-left: 2px solid var(--red); }
+    .det-card.known   { border-left: 2px solid var(--green); }
+
+    .det-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-dark);
+      border: 1px solid var(--accent-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: var(--font-display);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .det-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .det-avatar.unknown-av {
+      background: var(--red-bg);
+      border-color: rgba(255,77,109,0.2);
+      color: var(--red-text);
+    }
+
+    .det-info { flex: 1; min-width: 0; }
+
+    .det-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .det-name.unknown { color: var(--red-text); }
+
+    .det-meta {
+      font-size: 10px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    .det-conf {
+      font-size: 10px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      margin-top: 1px;
+    }
+
+    .det-conf span {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    /* Side panel footer */
+    .side-panel-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* No detections placeholder */
+    .no-detections {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 200px;
+      color: var(--text-hint);
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+
+    .no-det-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.25; }
+    .no-det-text { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .no-det-sub  { font-size: 10px; color: var(--text-hint); font-family: var(--font-mono); }
+
+    /* ===== PERSON MODAL ===== */
+    .person-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 12px;
+    }
+
+    .person-info-row:last-child { border-bottom: none; }
+    .pir-label { color: var(--text-hint); font-family: var(--font-mono); font-size: 11px; }
+    .pir-value { color: var(--text-primary); font-weight: 600; }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .cam-page { height: auto; }
+      .cam-content { grid-template-columns: 1fr; }
+      .feed-box { min-height: 280px; }
+      .cam-stats-row { grid-template-columns: repeat(2, 1fr); }
+      .side-panel { max-height: 320px; }
+    }
   </style>
 </head>
 <body>
-  <nav>
-    <h1>👁️ FaceTrace — Live Camera</h1>
-    <div><a href="{% url 'dashboard' %}">Dashboard</a></div>
-  </nav>
-  <div class="container">
-    <div class="video-box">
-      <img src="{% url 'video_feed' %}" alt="Live Feed">
-      <div class="controls">
-        <button class="btn btn-red" onclick="stopCamera()">Stop Camera</button>
-        <button class="btn btn-gray" onclick="location.href='{% url 'dashboard' %}'">Back</button>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <span class="logo-icon">👁️</span> FaceTrace
+      <span class="brand-dot"></span>
+    </a>
+    <div class="navbar-links">
+      <div class="cam-status">
+        <div class="cam-dot live"></div> Live
       </div>
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'attendance' %}">📋 Reports</a>
+      <a href="{% url 'logout' %}" class="btn-logout">⏻ Logout</a>
     </div>
-    <div class="sidebar">
-      <h3>Live Attendance</h3>
-      <div id="count">0</div>
-      <div style="color:#94a3b8;font-size:13px;margin-bottom:1rem;">marked present</div>
-      <div id="att-list"></div>
+  </nav>
+
+  <!-- ===== CAMERA PAGE ===== -->
+  <div class="cam-page">
+
+    <!-- Toolbar -->
+    <div class="cam-toolbar">
+      <div class="cam-toolbar-title">
+        📷 Live Camera Feed
+        <span class="live-badge">
+          <span class="badge-dot"></span> LIVE
+        </span>
+      </div>
+      <div class="cam-clock" id="cam-clock">00:00:00</div>
+      <button class="toolbar-btn danger" onclick="stopCamera()">⏹ Stop Camera</button>
+      <a href="{% url 'attendance' %}" class="toolbar-btn">📋 View Report</a>
+      <a href="{% url 'dashboard' %}" class="toolbar-btn">← Dashboard</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="cam-content">
+
+      <!-- Feed + stats -->
+      <div class="feed-panel">
+
+        <!-- Live feed -->
+        <div class="feed-box">
+          <img src="{% url 'video_feed' %}" alt="Live Camera Feed" id="feed-img">
+
+          <!-- Scan line -->
+          <div class="feed-scan-line"></div>
+
+          <!-- Corner brackets -->
+          <div class="feed-corner tl"></div>
+          <div class="feed-corner tr"></div>
+          <div class="feed-corner bl"></div>
+          <div class="feed-corner br"></div>
+
+          <!-- Top overlay -->
+          <div class="feed-overlay-top">
+            <div class="feed-cam-name">
+              <span class="feed-live-dot"></span>
+              CAM-01 · Main Feed
+            </div>
+            <div class="feed-rec-badge">● REC</div>
+          </div>
+
+          <!-- Bottom overlay -->
+          <div class="feed-overlay-bottom">
+            <div class="feed-faces-count">
+              <span class="fc-num" id="face-count">0</span>
+              faces detected
+            </div>
+            <div class="feed-timestamp" id="feed-ts">--:--:--</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="cam-stats-row">
+          <div class="cam-stat">
+            <div class="cam-stat-num green" id="stat-present">0</div>
+            <div class="cam-stat-lbl">Present</div>
+          </div>
+          <div class="cam-stat">
+            <div class="cam-stat-num" id="stat-detected">0</div>
+            <div class="cam-stat-lbl">Detected</div>
+          </div>
+          <div class="cam-stat">
+            <div class="cam-stat-num yellow" id="stat-unknown">0</div>
+            <div class="cam-stat-lbl">Unknown</div>
+          </div>
+          <div class="cam-stat">
+            <div class="cam-stat-num red" id="stat-absent">0</div>
+            <div class="cam-stat-lbl">Not Yet Seen</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Side panel -->
+      <div class="side-panel">
+        <div class="side-panel-header">
+          <h3>Live Detections</h3>
+          <span class="side-live-count" id="side-count">0 present</span>
+        </div>
+
+        <div class="side-panel-body" id="det-list">
+          <div class="no-detections">
+            <div class="no-det-icon">👁️</div>
+            <div class="no-det-text">Scanning for faces…</div>
+            <div class="no-det-sub">Stand in front of the camera</div>
+          </div>
+        </div>
+
+        <div class="side-panel-footer">
+          <a href="{% url 'attendance' %}" class="btn btn-ghost btn-sm" style="flex:1;text-align:center;">
+            📋 Full Report
+          </a>
+          <button class="btn btn-danger btn-sm" onclick="stopCamera()">⏹ Stop</button>
+        </div>
+      </div>
+
     </div>
   </div>
+
+  <!-- ===== PERSON MODAL ===== -->
+  <div class="modal-overlay" id="person-modal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-header-icon">👤</div>
+          <div>
+            <h3 id="modal-name">—</h3>
+            <div class="modal-sub" id="modal-roll">—</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="person-header">
+          <img src="" alt="" class="person-avatar" id="modal-img" style="display:none;">
+          <div class="person-avatar-placeholder" id="modal-placeholder">
+            <span id="modal-initials">?</span>
+          </div>
+          <div class="person-meta">
+            <div class="person-name" id="modal-name2">—</div>
+            <div class="person-roll" id="modal-roll2">—</div>
+            <div class="person-branch" id="modal-branch">—</div>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-lbl">Attendance Count</div>
+            <div class="info-val accent" id="modal-att">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Last Seen</div>
+            <div class="info-val" id="modal-last">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Camera</div>
+            <div class="info-val accent" id="modal-cam">CAM-01</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Status</div>
+            <div class="info-val green">Present ✓</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
+        <a href="{% url 'attendance' %}" class="btn btn-primary btn-sm">View Full Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="{% static 'js/camera.js' %}"></script>
   <script>
-    function stopCamera() {
-      fetch("{% url 'stop_camera' %}").then(() => location.href = "{% url 'dashboard' %}");
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const t = now.toLocaleTimeString('en-IN', { hour12: false });
+      document.getElementById('cam-clock').textContent = t;
+      document.getElementById('feed-ts').textContent = t;
     }
-    function refreshAttendance() {
-      fetch("{% url 'attendance_status' %}")
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Stop camera
+    function stopCamera() {
+      fetch('/stop-camera/')
+        .then(() => {
+          showToast('Camera stopped', 'info');
+          setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1000);
+        })
+        .catch(() => { window.location.href = "{% url 'dashboard' %}"; });
+    }
+
+    // Refresh detections every 3 seconds
+    function refreshDetections() {
+      fetch('/api/status/')
         .then(r => r.json())
         .then(data => {
-          document.getElementById('count').textContent = data.count;
-          const list = document.getElementById('att-list');
-          list.innerHTML = data.attendance.map(r =>
-            `<div class="att-item"><div class="name">${r.Name}</div><div class="time">${r.Time}</div></div>`
-          ).join('');
-        });
+          // Update counts
+          const count = data.count || 0;
+          document.getElementById('face-count').textContent  = count;
+          document.getElementById('stat-present').textContent = count;
+          document.getElementById('stat-detected').textContent = count;
+          document.getElementById('side-count').textContent = count + ' present';
+
+          // Update detection list
+          const list = document.getElementById('det-list');
+          if (data.attendance && data.attendance.length > 0) {
+            list.innerHTML = data.attendance.map(r => `
+              <div class="det-card known" onclick="openModal('${r.Name}', '', '', '${count}', '${r.Time}', 'CAM-01', '')">
+                <div class="det-avatar">${r.Name.charAt(0).toUpperCase()}</div>
+                <div class="det-info">
+                  <div class="det-name">${r.Name}</div>
+                  <div class="det-meta">${r.Time}</div>
+                  <div class="det-conf">Confidence: <span>High</span></div>
+                </div>
+                <span class="badge badge-present" style="flex-shrink:0;font-size:9px;">✓</span>
+              </div>
+            `).join('');
+          } else {
+            list.innerHTML = `
+              <div class="no-detections">
+                <div class="no-det-icon">👁️</div>
+                <div class="no-det-text">No faces detected yet</div>
+                <div class="no-det-sub">Stand in front of camera</div>
+              </div>`;
+          }
+        })
+        .catch(() => {});
     }
-    setInterval(refreshAttendance, 2000);
-    refreshAttendance();
+
+    setInterval(refreshDetections, 3000);
+    refreshDetections();
+
+    // Person modal
+    function openModal(name, rollNo, branch, attCount, lastSeen, camName, thumbUrl) {
+      document.getElementById('modal-name').textContent  = name;
+      document.getElementById('modal-name2').textContent = name;
+      document.getElementById('modal-roll').textContent  = rollNo || '—';
+      document.getElementById('modal-roll2').textContent = rollNo || '—';
+      document.getElementById('modal-branch').textContent = branch || '—';
+      document.getElementById('modal-att').textContent   = attCount || '0';
+      document.getElementById('modal-last').textContent  = lastSeen || '—';
+      document.getElementById('modal-cam').textContent   = camName || 'CAM-01';
+      document.getElementById('modal-initials').textContent = name.charAt(0).toUpperCase();
+
+      const img = document.getElementById('modal-img');
+      const ph  = document.getElementById('modal-placeholder');
+      if (thumbUrl) {
+        img.src = thumbUrl;
+        img.style.display = 'block';
+        ph.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        ph.style.display = 'flex';
+      }
+      document.getElementById('person-modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('person-modal').classList.remove('show');
+    }
+
+    document.getElementById('person-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // Toast
+    function showToast(msg, type = 'info') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.innerHTML = `
+        <span class="toast-icon">${icons[type]}</span>
+        <span class="toast-text">${msg}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+      c.appendChild(t);
+      setTimeout(() => { t.classList.add('removing'); setTimeout(() => t.remove(), 300); }, 4000);
+    }
   </script>
+
 </body>
 </html>

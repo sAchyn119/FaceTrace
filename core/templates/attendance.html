@@ -1,74 +1,654 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Attendance Report</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Report — FaceTrace</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; }
-    nav { background:#1e293b; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
-    nav h1 { color:#38bdf8; }
-    nav a { color:#94a3b8; text-decoration:none; margin-left:1.5rem; }
-    .container { padding:2rem; }
-    .filter { background:#1e293b; padding:1rem 1.5rem; border-radius:10px; margin-bottom:1.5rem; display:flex; gap:1rem; align-items:center; }
-    .filter input { padding:8px 12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; }
-    .filter button { padding:8px 16px; background:#38bdf8; color:#0f172a; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
-    .section { background:#1e293b; border-radius:10px; padding:1.5rem; }
-    .section h3 { margin-bottom:1rem; }
-    .present-h { color:#22c55e; }
-    .absent-h  { color:#ef4444; }
-    table { width:100%; border-collapse:collapse; font-size:14px; }
-    th { background:#0f172a; color:#94a3b8; padding:9px; text-align:left; }
-    td { padding:9px; border-bottom:1px solid #334155; }
-    .badge-p { background:#14532d; color:#86efac; padding:2px 9px; border-radius:99px; font-size:12px; }
-    .badge-a { background:#7f1d1d; color:#fca5a5; padding:2px 9px; border-radius:99px; font-size:12px; }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.4s ease both;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+
+    .filter-date {
+      padding: 8px 13px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color var(--transition);
+      cursor: pointer;
+    }
+
+    .filter-date:focus { border-color: var(--accent); }
+    .filter-date::-webkit-calendar-picker-indicator {
+      filter: invert(0.6);
+      cursor: pointer;
+    }
+
+    .filter-divider {
+      height: 24px;
+      width: 1px;
+      background: var(--border-light);
+      flex-shrink: 0;
+    }
+
+    /* ===== SUMMARY PILLS ===== */
+    .summary-pills {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .summary-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .pill-present {
+      background: var(--green-bg);
+      color: var(--green-text);
+      border-color: rgba(0,230,118,0.2);
+    }
+
+    .pill-absent {
+      background: var(--red-bg);
+      color: var(--red-text);
+      border-color: rgba(255,77,109,0.2);
+    }
+
+    .pill-rate {
+      background: var(--accent-dark);
+      color: var(--accent);
+      border-color: var(--accent-border);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .pill-present .pill-dot { background: var(--green); box-shadow: 0 0 4px var(--green); }
+    .pill-absent  .pill-dot { background: var(--red); }
+    .pill-rate    .pill-dot { background: var(--accent); }
+
+    /* ===== EXPORT BUTTON ===== */
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .export-btn:hover {
+      border-color: var(--accent-border);
+      color: var(--accent);
+      background: var(--accent-dark);
+    }
+
+    /* ===== PROGRESS STRIP ===== */
+    .attendance-strip {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      padding: 1.1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.4s 0.05s ease both;
+    }
+
+    .strip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .strip-title {
+      font-size: 11px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .strip-pct {
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .strip-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      display: flex;
+      gap: 2px;
+    }
+
+    .strip-present {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), rgba(0,230,118,0.7));
+      border-radius: 99px 0 0 99px;
+      box-shadow: 0 0 8px rgba(0,230,118,0.3);
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .strip-absent {
+      height: 100%;
+      background: var(--red-bg);
+      border-radius: 0 99px 99px 0;
+      flex: 1;
+    }
+
+    /* ===== TWO PANEL LAYOUT ===== */
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      animation: fadeInUp 0.4s 0.1s ease both;
+    }
+
+    /* Panel header */
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .panel-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .present-panel .panel-title { color: var(--green); }
+    .present-panel .panel-count {
+      background: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid rgba(0,230,118,0.2);
+    }
+
+    .absent-panel .panel-title  { color: var(--red); }
+    .absent-panel .panel-count  {
+      background: var(--red-bg);
+      color: var(--red-text);
+      border: 1px solid rgba(255,77,109,0.2);
+    }
+
+    /* Search in panel */
+    .panel-search {
+      padding: 6px 10px 6px 30px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      transition: border-color var(--transition);
+      width: 140px;
+      font-family: var(--font-body);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233d556e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 9px center;
+    }
+
+    .panel-search:focus { border-color: var(--accent-border); }
+    .panel-search::placeholder { color: var(--text-hint); }
+
+    /* ===== PRESENT ROWS ===== */
+    .present-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-light);
+      transition: background var(--transition);
+    }
+
+    .present-row:last-child { border-bottom: none; }
+
+    .present-row:hover {
+      background: var(--bg-hover);
+      padding-left: 8px;
+      padding-right: 8px;
+      margin: 0 -8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .row-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--green-bg);
+      border: 1px solid rgba(0,230,118,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green-text);
+      font-family: var(--font-display);
+      flex-shrink: 0;
+    }
+
+    .row-info { flex: 1; min-width: 0; }
+    .row-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .row-roll {
+      font-size: 10px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      margin-top: 1px;
+    }
+
+    .row-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ===== ABSENT ROWS ===== */
+    .absent-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-light);
+      transition: background var(--transition);
+    }
+
+    .absent-row:last-child { border-bottom: none; }
+
+    .absent-row:hover {
+      background: var(--bg-hover);
+      padding-left: 8px;
+      padding-right: 8px;
+      margin: 0 -8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .absent-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--red-bg);
+      border: 1px solid rgba(255,77,109,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red-text);
+      font-family: var(--font-display);
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    /* ===== SCROLLABLE LIST ===== */
+    .scroll-list {
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .scroll-list::-webkit-scrollbar { width: 3px; }
+    .scroll-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* ===== EMPTY PANEL ===== */
+    .panel-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: var(--text-hint);
+    }
+
+    .panel-empty-icon { font-size: 2rem; margin-bottom: 0.6rem; opacity: 0.3; }
+    .panel-empty-text { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+    .panel-empty-sub  { font-size: 11px; color: var(--text-hint); margin-top: 3px; }
+
+    @media (max-width: 900px) {
+      .report-grid { grid-template-columns: 1fr; }
+      .filter-bar  { flex-direction: column; align-items: flex-start; }
+      .summary-pills { margin-left: 0; }
+    }
+
+    @media (max-width: 600px) {
+      .strip-bar { height: 6px; }
+    }
   </style>
 </head>
 <body>
-  <nav>
-    <h1>👁️ FaceTrace — Reports</h1>
-    <div><a href="{% url 'dashboard' %}">Dashboard</a></div>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <span class="logo-icon">👁️</span> FaceTrace
+      <span class="brand-dot"></span>
+    </a>
+    <div class="navbar-links">
+      <div class="cam-status">
+        <div class="cam-dot live"></div> Live
+      </div>
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'camera' %}">📷 Live Camera</a>
+      <a href="{% url 'attendance' %}" class="active">📋 Reports</a>
+      <a href="{% url 'logout' %}" class="btn-logout">⏻ Logout</a>
+    </div>
   </nav>
-  <div class="container">
-    <div class="filter">
-      <span>Filter by date:</span>
-      <form method="GET" style="display:flex;gap:1rem;">
-        <input type="date" name="date" value="{{ date }}">
-        <button type="submit">Filter</button>
-      </form>
-      <span style="color:#64748b;font-size:13px;">{{ present_count }} present · {{ absent_count }} absent</span>
-    </div>
-    <div class="grid">
-      <div class="section">
-        <h3 class="present-h">Present ({{ present_count }})</h3>
-        <table>
-          <tr><th>Name</th><th>Roll No</th><th>Time</th></tr>
-          {% for r in records %}
-          <tr>
-            <td>{{ r.student.name }}</td>
-            <td>{{ r.student.roll_no }}</td>
-            <td>{{ r.time }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="3" style="color:#64748b;text-align:center;padding:1.5rem;">None</td></tr>
-          {% endfor %}
-        </table>
-      </div>
-      <div class="section">
-        <h3 class="absent-h">Absent ({{ absent_count }})</h3>
-        <table>
-          <tr><th>Name</th><th>Roll No</th></tr>
-          {% for s in absent %}
-          <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.roll_no }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="2" style="color:#64748b;text-align:center;padding:1.5rem;">All present!</td></tr>
-          {% endfor %}
-        </table>
-      </div>
-    </div>
+
+  <!-- ===== BREADCRUMB ===== -->
+  <div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span class="sep">›</span>
+    <span class="current">Attendance Report</span>
+    <span class="sep">·</span>
+    <span>{{ date }}</span>
   </div>
+
+  <div class="container">
+
+    <!-- ===== PAGE HEADER ===== -->
+    <div class="page-header fade-in">
+      <div class="page-header-left">
+        <div class="page-title">Attendance <span>Report</span></div>
+        <div class="page-sub">
+          <span class="glow-dot"></span>
+          Viewing records for {{ date }}
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="export-btn" onclick="exportCSV()">
+          ⬇️ Export CSV
+        </button>
+        <a href="{% url 'camera' %}" class="btn btn-primary btn-sm">📷 Start Camera</a>
+      </div>
+    </div>
+
+    <!-- ===== FILTER BAR ===== -->
+    <div class="filter-bar">
+      <span class="filter-label">📅 Filter by date</span>
+      <form method="GET" style="display:flex;align-items:center;gap:0.75rem;">
+        <input class="filter-date" type="date" name="date" value="{{ date }}">
+        <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+        <a href="?" class="btn btn-ghost btn-sm">Today</a>
+      </form>
+      <div class="filter-divider"></div>
+      <div class="summary-pills">
+        <span class="summary-pill pill-present">
+          <span class="pill-dot"></span>
+          {{ present_count }} Present
+        </span>
+        <span class="summary-pill pill-absent">
+          <span class="pill-dot"></span>
+          {{ absent_count }} Absent
+        </span>
+        <span class="summary-pill pill-rate">
+          <span class="pill-dot"></span>
+          {% if present_count or absent_count %}
+            {% widthratio present_count present_count|add:absent_count 100 %}%
+          {% else %}0%{% endif %}
+          Rate
+        </span>
+      </div>
+    </div>
+
+    <!-- ===== PROGRESS STRIP ===== -->
+    <div class="attendance-strip">
+      <div class="strip-header">
+        <div>
+          <div class="strip-title">Attendance Rate — {{ date }}</div>
+          <div style="font-size:11px;color:var(--text-hint);font-family:var(--font-mono);margin-top:2px;">
+            {{ present_count }} present · {{ absent_count }} absent · {{ present_count|add:absent_count }} total
+          </div>
+        </div>
+        <div class="strip-pct" id="strip-pct-val">
+          {% if present_count or absent_count %}
+            {% widthratio present_count present_count|add:absent_count 100 %}%
+          {% else %}0%{% endif %}
+        </div>
+      </div>
+      <div class="strip-bar">
+        <div class="strip-present" id="strip-present-bar"
+          style="width:{% if present_count or absent_count %}{% widthratio present_count present_count|add:absent_count 100 %}%{% else %}0%{% endif %}">
+        </div>
+        <div class="strip-absent"></div>
+      </div>
+    </div>
+
+    <!-- ===== REPORT GRID ===== -->
+    <div class="report-grid">
+
+      <!-- ===== PRESENT PANEL ===== -->
+      <div class="section present-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            ✅ Present
+            <span class="panel-count">{{ present_count }}</span>
+          </div>
+          <input class="panel-search" type="text"
+                 placeholder="Search…"
+                 oninput="filterList('present-list', this.value)">
+        </div>
+
+        <div class="scroll-list" id="present-list">
+          {% for r in records %}
+          <div class="present-row" data-name="{{ r.student.name|lower }}" data-roll="{{ r.student.roll_no|lower }}">
+            <div class="row-avatar">{{ r.student.name|first|upper }}</div>
+            <div class="row-info">
+              <div class="row-name">{{ r.student.name }}</div>
+              <div class="row-roll">{{ r.student.roll_no }} · {{ r.student.branch|default:"—" }}</div>
+            </div>
+            <div class="row-time">{{ r.time }}</div>
+          </div>
+          {% empty %}
+          <div class="panel-empty">
+            <div class="panel-empty-icon">📭</div>
+            <div class="panel-empty-text">No one present</div>
+            <div class="panel-empty-sub">Start camera to mark attendance</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ===== ABSENT PANEL ===== -->
+      <div class="section absent-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            ❌ Absent
+            <span class="panel-count">{{ absent_count }}</span>
+          </div>
+          <input class="panel-search" type="text"
+                 placeholder="Search…"
+                 oninput="filterList('absent-list', this.value)">
+        </div>
+
+        <div class="scroll-list" id="absent-list">
+          {% for s in absent %}
+          <div class="absent-row" data-name="{{ s.name|lower }}" data-roll="{{ s.roll_no|lower }}">
+            <div class="absent-avatar">{{ s.name|first|upper }}</div>
+            <div class="row-info">
+              <div class="row-name" style="color:var(--text-muted);">{{ s.name }}</div>
+              <div class="row-roll">{{ s.roll_no }} · {{ s.branch|default:"—" }}</div>
+            </div>
+            <span class="badge badge-absent" style="flex-shrink:0;">
+              <span class="badge-dot"></span> Absent
+            </span>
+          </div>
+          {% empty %}
+          <div class="panel-empty">
+            <div class="panel-empty-icon">🎉</div>
+            <div class="panel-empty-text">All present!</div>
+            <div class="panel-empty-sub">100% attendance today</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // Animate progress bar on load
+    window.addEventListener('load', () => {
+      const bar = document.getElementById('strip-present-bar');
+      if (bar) {
+        const w = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => { bar.style.width = w; }, 200);
+      }
+    });
+
+    // Live filter for present/absent lists
+    function filterList(listId, query) {
+      const list = document.getElementById(listId);
+      const rows = list.querySelectorAll('[data-name]');
+      const q = query.toLowerCase().trim();
+      rows.forEach(row => {
+        const name = row.dataset.name || '';
+        const roll = row.dataset.roll || '';
+        row.style.display = (!q || name.includes(q) || roll.includes(q)) ? '' : 'none';
+      });
+    }
+
+    // Export CSV
+    function exportCSV() {
+      const rows = [['Name', 'Roll No', 'Branch', 'Status', 'Time']];
+
+      // Present
+      document.querySelectorAll('#present-list [data-name]').forEach(row => {
+        const name = row.querySelector('.row-name')?.textContent.trim() || '';
+        const rollBranch = row.querySelector('.row-roll')?.textContent.trim().split(' · ') || [];
+        const time = row.querySelector('.row-time')?.textContent.trim() || '';
+        rows.push([name, rollBranch[0] || '', rollBranch[1] || '', 'Present', time]);
+      });
+
+      // Absent
+      document.querySelectorAll('#absent-list [data-name]').forEach(row => {
+        const name = row.querySelector('.row-name')?.textContent.trim() || '';
+        const rollBranch = row.querySelector('.row-roll')?.textContent.trim().split(' · ') || [];
+        rows.push([name, rollBranch[0] || '', rollBranch[1] || '', 'Absent', '—']);
+      });
+
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendance_{{ date }}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('CSV exported successfully', 'success');
+    }
+
+    // Toast
+    function showToast(msg, type = 'info') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.innerHTML = `
+        <span class="toast-icon">${icons[type]}</span>
+        <span class="toast-text">${msg}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+      c.appendChild(t);
+      setTimeout(() => {
+        t.classList.add('removing');
+        setTimeout(() => t.remove(), 300);
+      }, 4000);
+    }
+  </script>
+
 </body>
 </html>

@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lecture Schedule — FaceTrace</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <style>
+    .page-wrap { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px; text-align: left; }
+    th { color: var(--text-hint); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; }
+    td { color: var(--text-primary); }
+    .badge { padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; background: var(--accent-dark); color: var(--accent); border: 1px solid var(--accent-border); }
+    .form-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 1.5rem 2rem; margin-bottom: 2rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-full { grid-column: 1 / -1; }
+    label { display: block; font-size: 10px; color: var(--text-hint); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 13px; box-sizing: border-box; }
+    .btn-primary { background: var(--accent); color: var(--bg-primary); border: none; padding: 10px 20px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; font-size: 13px; }
+    .btn-danger  { background: var(--red-bg); color: var(--red-text); border: 1px solid rgba(255,77,109,0.3); padding: 5px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 11px; }
+    .error-msg { color: var(--red-text); background: var(--red-bg); border: 1px solid rgba(255,77,109,0.2); padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: 1rem; font-size: 13px; }
+    h1 { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-hint); font-size: 12px; font-family: var(--font-mono); margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <h1>📅 Lecture Schedule</h1>
+  <p class="subtitle">// manage timetable · HOD / Admin only</p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="error-msg">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if error %}
+    <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Add Lecture Form -->
+  <div class="form-card">
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:1rem;">➕ Add New Lecture</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div class="form-grid">
+        <div class="form-full">
+          <label>Subject / Course Name</label>
+          <input type="text" name="subject" placeholder="e.g. Data Structures" required>
+        </div>
+        <div>
+          <label>Faculty</label>
+          <select name="faculty_id">
+            <option value="">— Select Faculty —</option>
+            {% for f in faculties %}
+              <option value="{{ f.id }}">{{ f.name }} ({{ f.get_role_display }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Camera (Room)</label>
+          <select name="camera_id">
+            <option value="">— No Camera —</option>
+            {% for c in cameras %}
+              <option value="{{ c.id }}">{{ c.name }} · {{ c.get_location_type_display }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Day of Week</label>
+          <select name="day">
+            {% for val, label in day_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Specific Date (optional — overrides day)</label>
+          <input type="date" name="date">
+        </div>
+        <div>
+          <label>Start Time</label>
+          <input type="time" name="start_time" required>
+        </div>
+        <div>
+          <label>End Time</label>
+          <input type="time" name="end_time" required>
+        </div>
+        <div>
+          <label>Branch</label>
+          <input type="text" name="branch" placeholder="e.g. Computer Science">
+        </div>
+        <div>
+          <label>Year</label>
+          <input type="text" name="year" placeholder="e.g. 2">
+        </div>
+        <div>
+          <label>Attendance Window (minutes from start)</label>
+          <input type="number" name="grace_minutes" value="15" min="5" max="60">
+        </div>
+      </div>
+      <div style="margin-top:1.25rem;">
+        <button type="submit" class="btn-primary">Save Lecture</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lectures Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Faculty</th>
+        <th>Day / Date</th>
+        <th>Time</th>
+        <th>Window</th>
+        <th>Camera</th>
+        <th>Branch / Year</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lec in lectures %}
+      <tr>
+        <td><strong>{{ lec.subject }}</strong></td>
+        <td>{{ lec.faculty.name|default:"—" }}</td>
+        <td>
+          {% if lec.date %}
+            <span class="badge">{{ lec.date }}</span>
+          {% else %}
+            {{ lec.get_day_display }}
+          {% endif %}
+        </td>
+        <td>{{ lec.start_time|time:"H:i" }} – {{ lec.end_time|time:"H:i" }}</td>
+        <td>{{ lec.grace_minutes }} min</td>
+        <td>{{ lec.camera.name|default:"—" }}</td>
+        <td>{{ lec.branch|default:"—" }} / Yr {{ lec.year|default:"—" }}</td>
+        <td>
+          <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this lecture?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="lecture_id" value="{{ lec.id }}">
+            <button type="submit" class="btn-danger">✕ Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="color:var(--text-hint);text-align:center;padding:2rem;">No lectures yet. Add one above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="margin-top:2rem;">
+    <a href="{% url 'hod_dashboard' %}" style="color:var(--accent);font-size:13px;">← Back to HOD Dashboard</a>
+  </div>
+</div>
+</body>
+</html>

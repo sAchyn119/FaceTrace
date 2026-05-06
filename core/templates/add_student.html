@@ -1,39 +1,728 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Add Student</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Student — FaceTrace</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f172a; color:#e2e8f0; font-family:Arial,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { background:#1e293b; padding:2rem; border-radius:12px; width:420px; }
-    h2 { color:#38bdf8; margin-bottom:1.5rem; }
-    label { font-size:13px; color:#94a3b8; display:block; margin-bottom:4px; }
-    input { width:100%; padding:10px 14px; margin-bottom:1.2rem; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:14px; }
-    button { width:100%; padding:11px; background:#38bdf8; color:#0f172a; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-size:15px; }
-    .msg-ok  { background:#14532d; color:#86efac; padding:8px 12px; border-radius:6px; font-size:13px; margin-bottom:1rem; }
-    .msg-err { background:#7f1d1d; color:#fca5a5; padding:8px 12px; border-radius:6px; font-size:13px; margin-bottom:1rem; }
-    .back { display:block; text-align:center; margin-top:1rem; color:#38bdf8; text-decoration:none; font-size:13px; }
-    .hint { font-size:12px; color:#64748b; margin-top:-0.8rem; margin-bottom:1rem; }
+    .page-wrap {
+      min-height: calc(100vh - 62px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+      gap: 2rem;
+    }
+
+    /* ===== LEFT — FORM CARD ===== */
+    .add-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.4s ease both;
+      position: relative;
+    }
+
+    .add-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-border), transparent);
+    }
+
+    /* Card header */
+    .add-card-header {
+      padding: 1.5rem 2rem 1.25rem;
+      border-bottom: 1px solid var(--border-light);
+      background: rgba(15, 25, 41, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .add-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-lg);
+      background: var(--accent-dark);
+      border: 1px solid var(--accent-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(0, 212, 255, 0.1);
+    }
+
+    .add-card-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .add-card-sub {
+      font-size: 11px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+    }
+
+    /* Card body */
+    .add-card-body {
+      padding: 1.75rem 2rem;
+    }
+
+    /* ===== PHOTO PREVIEW ===== */
+    .photo-upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .photo-upload-zone:hover,
+    .photo-upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-dark);
+    }
+
+    .photo-upload-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Preview state */
+    .photo-preview-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .photo-preview-wrap.show {
+      display: flex;
+    }
+
+    .photo-preview-img {
+      width: 100px;
+      height: 100px;
+      border-radius: var(--radius-lg);
+      object-fit: cover;
+      border: 2px solid var(--accent-border);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+    }
+
+    .photo-preview-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Empty state */
+    .photo-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      pointer-events: none;
+    }
+
+    .photo-empty-icon {
+      font-size: 2.5rem;
+      opacity: 0.3;
+      margin-bottom: 0.25rem;
+    }
+
+    .photo-empty-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .photo-empty-sub {
+      font-size: 11px;
+      color: var(--text-hint);
+    }
+
+    /* ===== FORM ROW (2 cols) ===== */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    /* ===== TIPS CARD ===== */
+    .tips-card {
+      width: 100%;
+      max-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeInUp 0.4s 0.1s ease both;
+      flex-shrink: 0;
+    }
+
+    .tip-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+    }
+
+    .tip-section-header {
+      padding: 0.85rem 1.1rem;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 25, 41, 0.3);
+    }
+
+    .tip-list {
+      padding: 0.85rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .tip-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .tip-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .tip-good .tip-icon {
+      filter: none;
+    }
+
+    .tip-bad {
+      color: var(--text-hint);
+    }
+
+    .tip-bad .tip-icon {
+      opacity: 0.6;
+    }
+
+    /* ===== SUBMIT BUTTON ===== */
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: var(--bg-primary);
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-display);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+      position: relative;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 24px rgba(0, 212, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:hover::after {
+      left: 100%;
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    .submit-btn.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* ===== BACK LINK ===== */
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 1rem;
+      font-size: 12px;
+      color: var(--text-hint);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      transition: color var(--transition);
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    /* ===== RECENT STUDENTS LIST ===== */
+    .recent-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 1.1rem;
+      border-bottom: 1px solid var(--border-light);
+      transition: background var(--transition);
+    }
+
+    .recent-item:last-child {
+      border-bottom: none;
+    }
+
+    .recent-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .recent-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-dark);
+      border: 1px solid var(--accent-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font-display);
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .recent-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .recent-roll {
+      font-size: 10px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+      margin-top: 1px;
+    }
+
+    .recent-badge {
+      margin-left: auto;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid rgba(0, 230, 118, 0.2);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrap {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .tips-card {
+        max-width: 520px;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .tip-section {
+        flex: 1;
+        min-width: 220px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .page-wrap {
+        padding: 1rem;
+      }
+
+      .add-card-body {
+        padding: 1.25rem;
+      }
+
+      .add-card-header {
+        padding: 1.25rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .tips-card {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <h2>Add New Student</h2>
-    {% for msg in messages %}
-      <div class="{% if 'added' in msg.message %}msg-ok{% else %}msg-err{% endif %}">{{ msg }}</div>
-    {% endfor %}
-    <form method="POST" enctype="multipart/form-data">
-      {% csrf_token %}
-      <label>Full Name</label>
-      <input type="text" name="name" placeholder="e.g. Rahul Sharma" required>
-      <label>Roll Number</label>
-      <input type="text" name="roll_no" placeholder="e.g. CS2024001" required>
-      <label>Photo</label>
-      <input type="file" name="photo" accept="image/*" required>
-      <p class="hint">Clear front-facing photo, good lighting, face visible</p>
-      <button type="submit">Add Student & Train Model</button>
-    </form>
-    <a href="{% url 'dashboard' %}" class="back">← Back to Dashboard</a>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <span class="logo-icon">👁️</span> FaceTrace
+      <span class="brand-dot"></span>
+    </a>
+    <div class="navbar-links">
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'camera' %}">📷 Live Camera</a>
+      <a href="{% url 'attendance' %}">📋 Reports</a>
+      <a href="{% url 'add_student' %}" class="active">➕ Add Student</a>
+      <a href="{% url 'logout' %}" class="btn-logout">⏻ Logout</a>
+    </div>
+  </nav>
+
+  <!-- ===== BREADCRUMB ===== -->
+  <div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span class="sep">›</span>
+    <span class="current">Add Student</span>
   </div>
+
+  <div class="page-wrap">
+
+    <!-- ===== FORM CARD ===== -->
+    <div class="add-card">
+
+      <!-- Header -->
+      <div class="add-card-header">
+        <div class="add-card-icon">👤</div>
+        <div>
+          <div class="add-card-title">Register New Student</div>
+          <div class="add-card-sub">// add face to recognition model</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="add-card-body">
+
+        <!-- Messages -->
+        {% for msg in messages %}
+        <div
+          class="alert {% if 'added' in msg.message or 'success' in msg.tags %}alert-success{% else %}alert-error{% endif %}"
+          style="display:flex;align-items:center;gap:8px;">
+          <span class="alert-icon">
+            {% if 'added' in msg.message or 'success' in msg.tags %}✅{% else %}⚠️{% endif %}
+          </span>
+          {{ msg }}
+        </div>
+        {% endfor %}
+
+        <form method="POST" enctype="multipart/form-data" id="student-form">
+          {% csrf_token %}
+
+          <!-- Photo upload -->
+          <div style="margin-bottom:1.25rem;">
+            <label class="form-label">Student Photo</label>
+            <div class="photo-upload-zone" id="photo-zone" ondragover="onDragOver(event)"
+              ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+              <input type="file" name="photo" id="photo-input" accept="image/*" required onchange="previewPhoto(this)">
+
+              <!-- Empty state -->
+              <div class="photo-empty" id="photo-empty">
+                <div class="photo-empty-icon">📸</div>
+                <div class="photo-empty-text">Click or drag photo here</div>
+                <div class="photo-empty-sub">JPG, PNG, WEBP — clear front-facing photo</div>
+              </div>
+
+              <!-- Preview -->
+              <div class="photo-preview-wrap" id="photo-preview">
+                <img src="" alt="Preview" class="photo-preview-img" id="preview-img">
+                <div class="photo-preview-name" id="preview-name"></div>
+                <div style="font-size:11px;color:var(--accent);font-family:var(--font-mono);">
+                  ✓ Photo selected — click to change
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Name + Roll -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">
+                Full Name <span class="label-required">*</span>
+              </label>
+              <input class="form-input" type="text" name="name" placeholder="e.g. Rahul Sharma" required
+                autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Roll Number <span class="label-required">*</span>
+              </label>
+              <input class="form-input" type="text" name="roll_no" placeholder="e.g. CS2024001" required
+                autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Branch + Year -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Branch</label>
+              <select class="form-select" name="branch">
+                <option value="">Select branch</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Civil">Civil</option>
+                <option value="Electrical">Electrical</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <select class="form-select" name="year">
+                <option value="">Select year</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Email (optional) -->
+          <div class="form-group">
+            <label class="form-label">Email <span
+                style="color:var(--text-hint);font-size:9px;font-weight:400;">optional</span></label>
+            <input class="form-input" type="email" name="email" placeholder="student@college.edu" autocomplete="off">
+          </div>
+
+          <!-- Submit -->
+          <div style="text-align:center;margin-bottom:1.25rem;padding:1rem;
+            background:var(--accent-dark);border-radius:var(--radius-md);">
+            <div style="font-size:13px;color:var(--accent);font-weight:bold;
+              margin-bottom:0.5rem;">
+              🚀 Want better recognition accuracy?
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:0.75rem;">
+              Use webcam to capture 50 photos instead of uploading 1
+            </div>
+            {% if student %}
+            <a href="{% url 'capture_photos' student.id %}" class="btn btn-primary"
+              style="font-size:13px;padding:8px 20px;">
+              📸 Capture 50 Photos (Recommended)
+            </a>
+            {% endif %}
+          </div>
+
+          <button class="submit-btn" type="submit" id="submit-btn"
+            onclick="this.classList.add('loading');this.textContent='Training model…'">
+            🧠 Add Student & Train Model
+          </button>
+
+        </form>
+
+        <!-- Back -->
+        <a href="{% url 'dashboard' %}" class="back-link">
+          ← Back to Dashboard
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ===== TIPS SIDEBAR ===== -->
+    <div class="tips-card">
+
+      <!-- Photo tips -->
+      <div class="tip-section">
+        <div class="tip-section-header">
+          📸 Photo Guidelines
+        </div>
+        <div class="tip-list">
+          <div class="tip-item tip-good">
+            <span class="tip-icon">✅</span>
+            Clear front-facing photo
+          </div>
+          <div class="tip-item tip-good">
+            <span class="tip-icon">✅</span>
+            Good lighting, no shadows on face
+          </div>
+          <div class="tip-item tip-good">
+            <span class="tip-icon">✅</span>
+            Face fully visible, no mask
+          </div>
+          <div class="tip-item tip-good">
+            <span class="tip-icon">✅</span>
+            Neutral background preferred
+          </div>
+          <div class="tip-item tip-bad">
+            <span class="tip-icon">❌</span>
+            No sunglasses or heavy makeup
+          </div>
+          <div class="tip-item tip-bad">
+            <span class="tip-icon">❌</span>
+            Avoid blurry or low-res photos
+          </div>
+          <div class="tip-item tip-bad">
+            <span class="tip-icon">❌</span>
+            No group photos
+          </div>
+        </div>
+      </div>
+
+      <!-- Process info -->
+      <div class="tip-section">
+        <div class="tip-section-header">
+          ⚙️ What Happens Next
+        </div>
+        <div class="tip-list">
+          <div class="tip-item">
+            <span class="tip-icon">1️⃣</span>
+            Photo is saved to the system
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">2️⃣</span>
+            Face is extracted & encoded
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">3️⃣</span>
+            Model is retrained with new face
+          </div>
+          <div class="tip-item">
+            <span class="tip-icon">4️⃣</span>
+            Student is auto-detected in future
+          </div>
+        </div>
+      </div>
+
+      <!-- Recently added (if available) -->
+      {% if recent_students %}
+      <div class="recent-section">
+        <div class="tip-section-header">
+          🕐 Recently Added
+        </div>
+        {% for s in recent_students|slice:":5" %}
+        <div class="recent-item">
+          <div class="recent-avatar">{{ s.name|first|upper }}</div>
+          <div>
+            <div class="recent-name">{{ s.name }}</div>
+            <div class="recent-roll">{{ s.roll_no }}</div>
+          </div>
+          <span class="recent-badge">✓ Trained</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // Photo preview
+    function previewPhoto(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('preview-img').src = e.target.result;
+        document.getElementById('preview-name').textContent = file.name;
+        document.getElementById('photo-empty').style.display = 'none';
+        document.getElementById('photo-preview').classList.add('show');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Drag & drop
+    function onDragOver(e) {
+      e.preventDefault();
+      document.getElementById('photo-zone').classList.add('dragover');
+    }
+
+    function onDragLeave(e) {
+      document.getElementById('photo-zone').classList.remove('dragover');
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      document.getElementById('photo-zone').classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const input = document.getElementById('photo-input');
+        // Create a DataTransfer to assign files to input
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        input.files = dt.files;
+        previewPhoto(input);
+      }
+    }
+
+    // Reset submit btn if form has error
+    window.addEventListener('load', () => {
+      const alerts = document.querySelectorAll('.alert-error');
+      if (alerts.length > 0) {
+        const btn = document.getElementById('submit-btn');
+        btn.classList.remove('loading');
+        btn.textContent = '🧠 Add Student & Train Model';
+      }
+    });
+  </script>
+
 </body>
+
 </html>

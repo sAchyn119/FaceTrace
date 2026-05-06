@@ -1,0 +1,95 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HOD Dashboard — FaceTrace</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+  </head>
+
+  <body>
+    <div class="container fade-in fade-in-1">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">HOD <span>Dashboard</span></div>
+          <div class="page-sub">
+            <span class="mono">Department-level view and reports</span>
+            <span class="sep">•</span>
+            <span class="mono">Template ready to connect</span>
+          </div>
+        </div>
+
+        <div class="page-header-actions">
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard' %}">← Main Dashboard</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'video_list' %}">Video History</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'attendance' %}">Attendance Report</a>
+        </div>
+      </div>
+
+      <div class="mini-stats fade-in fade-in-2">
+        <div class="mini-stat">
+          <div class="mini-stat-icon">🏫</div>
+          <div>
+            <div class="mini-stat-num">—</div>
+            <div class="mini-stat-lbl">Total students</div>
+          </div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon">📈</div>
+          <div>
+            <div class="mini-stat-num">—</div>
+            <div class="mini-stat-lbl">Avg attendance</div>
+          </div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon">🎥</div>
+          <div>
+            <div class="mini-stat-num">—</div>
+            <div class="mini-stat-lbl">Processed videos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col fade-in fade-in-3">
+        <div class="section">
+          <div class="section-header">
+            <h3><span class="section-icon">📊</span>Attendance Snapshot</h3>
+            <a href="{% url 'attendance' %}">Open detailed report</a>
+          </div>
+
+          <div class="empty-state">
+            <div class="empty-state-icon">🔌</div>
+            <div class="empty-state-title">Not connected yet</div>
+            <div class="empty-state-sub">Wire this page to department filters and trend calculations to show charts and roll-ups.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <h3><span class="section-icon">⚙️</span>Admin Actions</h3>
+            <span class="role-badge role-hod">HOD</span>
+          </div>
+
+          <div class="quick-links">
+            <a class="quick-link" href="{% url 'add_student' %}">
+              <span class="ql-icon">➕</span> Add student
+            </a>
+            <a class="quick-link" href="{% url 'video_upload' %}">
+              <span class="ql-icon">🎞️</span> Upload video
+            </a>
+            <a class="quick-link" href="{% url 'video_list' %}">
+              <span class="ql-icon">📚</span> View results history
+            </a>
+            <a class="quick-link" href="{% url 'logout' %}">
+              <span class="ql-icon">🚪</span> Logout
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,734 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FaceTrace · Add Student</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+  <style>
+    :root {
+      --accent: #00d4ff;
+      --green:  #00ff88;
+      --red:    #ff4757;
+      --yellow: #ffa502;
+      --radius-xl: 16px;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+    }
+
+    .page-wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── STEPPER ── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .step-item:not(:last-child)::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: var(--border-light);
+      margin: 0 8px;
+      transition: background .4s;
+    }
+    .step-item.done:not(:last-child)::after { background: var(--green); }
+    .step-item.active:not(:last-child)::after { background: var(--accent); }
+    .step-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      color: var(--text-muted);
+      background: var(--bg-primary);
+      flex-shrink: 0;
+      transition: all .3s;
+    }
+    .step-item.active .step-num { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.1); }
+    .step-item.done .step-num   { border-color: var(--green);  color: var(--bg-primary); background: var(--green); font-size:14px; }
+    .step-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .step-item.active .step-label { color: var(--accent); font-weight: 600; }
+    .step-item.done .step-label   { color: var(--green); }
+
+    /* ── PANELS ── */
+    .panel { display: none; animation: fadeIn .3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .panel-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: .3rem;
+    }
+    .panel-sub { color: var(--text-muted); font-size: 13px; margin-bottom: 1.5rem; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── STEP 1: PROFILE PHOTO ── */
+    .photo-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .photo-option {
+      border: 2px dashed var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--bg-card);
+    }
+    .photo-option:hover { border-color: var(--accent); background: rgba(0,212,255,.05); }
+    .photo-option.selected { border-color: var(--green); border-style: solid; background: rgba(0,255,136,.05); }
+    .photo-option-icon { font-size: 2rem; margin-bottom: .5rem; }
+    .photo-option-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .photo-option-sub   { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* Profile preview */
+    .profile-preview-wrap {
+      display: none;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .profile-preview-wrap.show { display: block; }
+    .profile-preview {
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--green);
+      margin: 0 auto .75rem;
+      display: block;
+    }
+
+    /* Gallery input */
+    #gallery-input { display: none; }
+
+    /* Camera preview for profile */
+    #profile-cam-wrap {
+      display: none;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    #profile-video {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--accent);
+      background: #000;
+      max-height: 300px;
+    }
+
+    /* ── STEP 2: 50 PHOTOS ── */
+    #capture-video {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 3px solid var(--accent);
+      background: #000;
+      display: block;
+    }
+    .progress-wrap {
+      background: var(--bg-card);
+      border-radius: 99px;
+      height: 10px;
+      overflow: hidden;
+      margin: .75rem 0 .4rem;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 99px;
+      transition: width .3s ease;
+    }
+    .count-display {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: .5rem 0 .2rem;
+    }
+    .count-display span { font-size: 1rem; color: var(--text-muted); }
+    .status-msg {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      min-height: 20px;
+      margin-bottom: .75rem;
+    }
+
+    /* ── STEP 3: DETAILS ── */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .form-group label .req { color: var(--accent); }
+    .form-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border .2s;
+      font-family: inherit;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    select.form-input { cursor: pointer; }
+
+    /* ── STEP 4: TRAINING ── */
+    .training-status {
+      text-align: center;
+      padding: 2rem;
+    }
+    .training-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .training-title { font-size: 1.2rem; font-weight: 700; margin-bottom: .5rem; }
+    .training-sub { color: var(--text-muted); font-size: 13px; margin-bottom: 1.5rem; }
+    .training-bar-wrap {
+      background: var(--bg-card);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      max-width: 300px;
+      margin: 0 auto 1rem;
+    }
+    .training-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 99px;
+      width: 0%;
+      animation: trainProgress 4s ease forwards;
+    }
+    @keyframes trainProgress { to { width: 100%; } }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 24px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all .2s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: #080d18; }
+    .btn-primary:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-green { background: var(--green); color: #080d18; }
+    .btn-green:hover { opacity: .85; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-light);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-full { width: 100%; }
+    .btn-row { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1rem; }
+
+    /* ── ALERT ── */
+    .alert-box {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .alert-box.show { display: block; }
+    .alert-error   { background: rgba(255,71,87,.12); border:1px solid var(--red);    color: var(--red); }
+    .alert-success { background: rgba(0,255,136,.12); border:1px solid var(--green);  color: var(--green); }
+    .alert-info    { background: rgba(0,212,255,.10); border:1px solid var(--accent); color: var(--accent); }
+
+    /* ── INSTRUCTIONS BOX ── */
+    .instructions {
+      background: rgba(0,212,255,.06);
+      border: 1px solid rgba(0,212,255,.2);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .instructions-title { font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: .5rem; }
+    .instructions ol { padding-left: 1.2rem; }
+    .instructions li { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{% url 'dashboard' %}" class="navbar-brand">
+    <span class="logo-icon">👁️</span> FaceTrace
+  </a>
+  <div class="navbar-links">
+    <a href="{% url 'dashboard' %}">← Dashboard</a>
+    <a href="{% url 'student_list' %}">👥 Students</a>
+    <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper">
+    <div class="step-item active" id="step-ind-1">
+      <div class="step-num" id="step-num-1">1</div>
+      <div class="step-label">Profile Photo</div>
+    </div>
+    <div class="step-item" id="step-ind-2">
+      <div class="step-num" id="step-num-2">2</div>
+      <div class="step-label">50 Photos</div>
+    </div>
+    <div class="step-item" id="step-ind-3">
+      <div class="step-num" id="step-num-3">3</div>
+      <div class="step-label">Details</div>
+    </div>
+    <div class="step-item" id="step-ind-4">
+      <div class="step-num" id="step-num-4">4</div>
+      <div class="step-label">Train</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STEP 1 — PROFILE PHOTO
+  ══════════════════════════════════════ -->
+  <div class="panel active" id="panel-1">
+    <div class="panel-title">📸 Step 1 — Profile Photo</div>
+    <div class="panel-sub">Take a clear front-facing photo for the student profile.</div>
+
+    <div class="alert-box alert-error" id="step1-error"></div>
+
+    <div class="card">
+      <!-- Options -->
+      <div class="photo-options" id="photo-options">
+        <div class="photo-option" id="opt-camera" onclick="selectProfileOption('camera')">
+          <div class="photo-option-icon">📷</div>
+          <div class="photo-option-label">Use Camera</div>
+          <div class="photo-option-sub">Take live photo now</div>
+        </div>
+        <div class="photo-option" id="opt-gallery" onclick="selectProfileOption('gallery')">
+          <div class="photo-option-icon">🖼️</div>
+          <div class="photo-option-label">Choose from Gallery</div>
+          <div class="photo-option-sub">Upload existing photo</div>
+        </div>
+      </div>
+      <input type="file" id="gallery-input" accept="image/*" onchange="gallerySelected(event)">
+
+      <!-- Camera view -->
+      <div id="profile-cam-wrap">
+        <video id="profile-video" autoplay playsinline></video>
+        <div style="display:flex;gap:.75rem;justify-content:center;margin-top:.75rem;">
+          <button class="btn btn-primary" onclick="captureProfilePhoto()">📸 Capture Photo</button>
+          <button class="btn btn-ghost" onclick="cancelProfileCam()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="profile-preview-wrap" id="profile-preview-wrap">
+        <img id="profile-preview-img" class="profile-preview" src="" alt="Profile"/>
+        <div style="color:var(--green);font-size:13px;font-weight:600;">✓ Photo selected</div>
+        <button class="btn btn-ghost" style="margin-top:.5rem;font-size:12px;"
+                onclick="retakeProfile()">Retake</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep2()">Next → Capture 50 Photos</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STEP 2 — CAPTURE 50 PHOTOS
+  ══════════════════════════════════════ -->
+  <div class="panel" id="panel-2">
+    <div class="panel-title">🎥 Step 2 — Capture 50 Training Photos</div>
+    <div class="panel-sub">Camera will automatically capture 50 photos. Move your head slowly for better accuracy.</div>
+
+    <div class="card">
+      <video id="capture-video" autoplay playsinline></video>
+
+      <div class="count-display">
+        <span id="count-num">0</span><span> / 50</span>
+      </div>
+      <div class="status-msg" id="status-msg">Preparing camera…</div>
+      <div class="progress-wrap">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+
+      <div class="instructions" style="margin-top:1rem;">
+        <div class="instructions-title">📋 For best results:</div>
+        <ol>
+          <li>Look straight at the camera first (photos 1–15)</li>
+          <li>Slowly turn head left then right (photos 16–35)</li>
+          <li>Tilt head slightly up and down (photos 36–45)</li>
+          <li>Return to center and stay still (photos 46–50)</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="cancelCapture()">✕ Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STEP 3 — STUDENT DETAILS
+  ══════════════════════════════════════ -->
+  <div class="panel" id="panel-3">
+    <div class="panel-title">📝 Step 3 — Student Details</div>
+    <div class="panel-sub">50 photos captured successfully! Now fill in the student information.</div>
+
+    <div class="alert-box alert-error"   id="step3-error"></div>
+    <div class="alert-box alert-success" id="step3-success"></div>
+
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="inp-name" placeholder="e.g. Rahul Sharma" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Roll Number <span class="req">*</span></label>
+          <input class="form-input" type="text" id="inp-roll" placeholder="e.g. CS2024001">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Branch</label>
+          <select class="form-input" id="inp-branch">
+            <option value="">Select branch</option>
+            <option>Computer Science</option>
+            <option>Information Technology</option>
+            <option>Electronics</option>
+            <option>Mechanical</option>
+            <option>Civil</option>
+            <option>Electrical</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <select class="form-input" id="inp-year">
+            <option value="">Select year</option>
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email</label>
+          <input class="form-input" type="email" id="inp-email" placeholder="student@college.edu">
+        </div>
+        <div class="form-group">
+          <label>Phone / Contact</label>
+          <input class="form-input" type="tel" id="inp-phone" placeholder="e.g. 9876543210">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-green btn-full" onclick="submitStudent()">
+        🧠 Save Student & Train Model
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STEP 4 — TRAINING
+  ══════════════════════════════════════ -->
+  <div class="panel" id="panel-4">
+    <div class="card">
+      <div class="training-status" id="training-status">
+        <div class="training-icon">🧠</div>
+        <div class="training-title">Training Face Recognition Model…</div>
+        <div class="training-sub">Please wait. Do not close this page.</div>
+        <div class="training-bar-wrap">
+          <div class="training-bar" id="training-bar"></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);" id="training-msg">
+          Processing 50 photos…
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+  const SESSION_KEY = 'ft_temp_session_' + Date.now();
+  let profileBlob    = null;
+  let profileStream  = null;
+  let captureStream  = null;
+  let captureCount   = 0;
+  let tempSessionId  = null;
+  let captureInterval = null;
+
+  // ── STEPPER ──────────────────────────────────────
+  function setStep(n) {
+    for (let i = 1; i <= 4; i++) {
+      const ind = document.getElementById(`step-ind-${i}`);
+      const num = document.getElementById(`step-num-${i}`);
+      ind.classList.remove('active','done');
+      if (i < n)      { ind.classList.add('done');   num.textContent = '✓'; }
+      else if (i === n){ ind.classList.add('active'); num.textContent = i; }
+      else             { num.textContent = i; }
+
+      document.getElementById(`panel-${i}`).classList.remove('active');
+    }
+    document.getElementById(`panel-${n}`).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  // ── STEP 1: PROFILE PHOTO ────────────────────────
+  function selectProfileOption(mode) {
+    document.getElementById('opt-camera').classList.remove('selected');
+    document.getElementById('opt-gallery').classList.remove('selected');
+
+    if (mode === 'camera') {
+      document.getElementById('opt-camera').classList.add('selected');
+      startProfileCam();
+    } else {
+      document.getElementById('opt-gallery').classList.add('selected');
+      document.getElementById('gallery-input').click();
+    }
+  }
+
+  async function startProfileCam() {
+    try {
+      profileStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+      document.getElementById('profile-video').srcObject = profileStream;
+      document.getElementById('profile-cam-wrap').style.display = 'block';
+      document.getElementById('profile-preview-wrap').classList.remove('show');
+    } catch(e) {
+      showError('step1-error', 'Camera access denied. Please allow camera permission.');
+    }
+  }
+
+  function captureProfilePhoto() {
+    const video  = document.getElementById('profile-video');
+    const canvas = document.createElement('canvas');
+    canvas.width  = 640; canvas.height = 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      profileBlob = blob;
+      const url = URL.createObjectURL(blob);
+      document.getElementById('profile-preview-img').src = url;
+      document.getElementById('profile-preview-wrap').classList.add('show');
+      document.getElementById('profile-cam-wrap').style.display = 'none';
+      stopStream(profileStream); profileStream = null;
+    }, 'image/jpeg', 0.9);
+  }
+
+  function gallerySelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    profileBlob = file;
+    const url = URL.createObjectURL(file);
+    document.getElementById('profile-preview-img').src = url;
+    document.getElementById('profile-preview-wrap').classList.add('show');
+    document.getElementById('profile-cam-wrap').style.display = 'none';
+  }
+
+  function cancelProfileCam() {
+    stopStream(profileStream); profileStream = null;
+    document.getElementById('profile-cam-wrap').style.display = 'none';
+    document.getElementById('opt-camera').classList.remove('selected');
+  }
+
+  function retakeProfile() {
+    profileBlob = null;
+    document.getElementById('profile-preview-wrap').classList.remove('show');
+    document.getElementById('opt-camera').classList.remove('selected');
+    document.getElementById('opt-gallery').classList.remove('selected');
+  }
+
+  function goStep2() {
+    if (!profileBlob) {
+      showError('step1-error', 'Please select or capture a profile photo first.');
+      return;
+    }
+    hideError('step1-error');
+    setStep(2);
+    startCapture();
+  }
+
+  // ── STEP 2: CAPTURE 50 PHOTOS ────────────────────
+  async function startCapture() {
+    try {
+      captureStream = await navigator.mediaDevices.getUserMedia({
+        video: { width:640, height:480, facingMode:'user' }
+      });
+      document.getElementById('capture-video').srcObject = captureStream;
+      updateCapUI(0, 'Position your face in the center…');
+
+      // Generate temp session ID
+      tempSessionId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+
+      setTimeout(() => beginCapture(), 2000);
+    } catch(e) {
+      alert('Camera access denied. Please allow camera and try again.');
+      setStep(1);
+    }
+  }
+
+  function beginCapture() {
+    const video  = document.getElementById('capture-video');
+    const canvas = document.createElement('canvas');
+    canvas.width = 640; canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    captureCount = 0;
+
+    captureInterval = setInterval(async () => {
+      if (captureCount >= 50) {
+        clearInterval(captureInterval);
+        captureInterval = null;
+        stopStream(captureStream); captureStream = null;
+        updateCapUI(50, '✅ All 50 photos captured!');
+        setTimeout(() => setStep(3), 800);
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0, 640, 480);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+
+      const form = new FormData();
+      form.append('photo',      blob, `face_${captureCount}.jpg`);
+      form.append('session_id', tempSessionId);
+      form.append('index',      captureCount);
+
+      try {
+        await fetch('/capture-temp-photo/', {
+          method:  'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          body: form
+        });
+      } catch(e) { console.warn('Upload err:', e); }
+
+      captureCount++;
+      const msg =
+        captureCount < 15 ? 'Look straight at camera…' :
+        captureCount < 25 ? 'Slowly turn head LEFT…'  :
+        captureCount < 35 ? 'Slowly turn head RIGHT…' :
+        captureCount < 45 ? 'Tilt head UP and DOWN…'  :
+                            'Almost done, stay still…';
+      updateCapUI(captureCount, msg);
+    }, 280);
+  }
+
+  function cancelCapture() {
+    if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
+    stopStream(captureStream); captureStream = null;
+    setStep(1);
+  }
+
+  function updateCapUI(n, msg) {
+    document.getElementById('count-num').textContent   = n;
+    document.getElementById('status-msg').textContent  = msg;
+    document.getElementById('progress-fill').style.width = `${(n/50)*100}%`;
+  }
+
+  // ── STEP 3: SUBMIT DETAILS ───────────────────────
+  async function submitStudent() {
+    const name   = document.getElementById('inp-name').value.trim();
+    const roll   = document.getElementById('inp-roll').value.trim();
+    const branch = document.getElementById('inp-branch').value.trim();
+    const year   = document.getElementById('inp-year').value.trim();
+    const email  = document.getElementById('inp-email').value.trim();
+    const phone  = document.getElementById('inp-phone').value.trim();
+
+    if (!name || !roll) {
+      showError('step3-error', 'Name and Roll Number are required.');
+      return;
+    }
+    hideError('step3-error');
+    setStep(4);
+
+    const form = new FormData();
+    form.append('session_id', tempSessionId);
+    form.append('name',    name);
+    form.append('roll_no', roll);
+    form.append('branch',  branch);
+    form.append('year',    year);
+    form.append('email',   email);
+    form.append('phone',   phone);
+    if (profileBlob) form.append('photo', profileBlob, 'profile.jpg');
+
+    try {
+      const res  = await fetch('/add-student-final/', {
+        method:  'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: form
+      });
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        document.getElementById('training-bar').style.animationDuration = '3s';
+        document.getElementById('training-msg').textContent = '✅ Student saved & model trained!';
+        setTimeout(() => {
+          document.getElementById('training-status').innerHTML = `
+            <div class="training-icon">✅</div>
+            <div class="training-title" style="color:var(--green)">Done!</div>
+            <div class="training-sub">${name} has been registered successfully.</div>
+            <a href="/students/" class="btn btn-green" style="margin-top:1rem;">👥 View Students</a>
+            <a href="/" class="btn btn-ghost" style="margin-top:.5rem;">← Dashboard</a>
+          `;
+        }, 3500);
+      } else {
+        setStep(3);
+        showError('step3-error', data.error || 'Something went wrong. Try again.');
+      }
+    } catch(e) {
+      setStep(3);
+      showError('step3-error', 'Network error. Please try again.');
+    }
+  }
+
+  // ── HELPERS ──────────────────────────────────────
+  function stopStream(s) {
+    if (s) s.getTracks().forEach(t => t.stop());
+  }
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+  }
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+</script>
+</body>
+</html>

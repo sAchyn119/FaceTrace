@@ -2,12 +2,26 @@ import cv2
 import numpy as np
 import os
 from PIL import Image
-from config import KNOWN_FACES_DIR, MODEL_PATH
+from config import KNOWN_FACES_DIR, MODEL_PATH, CASCADE_PATH, SCALE_FACTOR, MIN_NEIGHBORS
+
 
 def build_and_save_model():
     """
     Reads all images from known_faces/, trains LBPH model, saves it.
-    Returns (label_map: dict{id->name}, success: bool)
+
+    FOLDER STRUCTURE SUPPORTED:
+      Option A — Subfolders per person (webcam registration, 50 photos):
+        known_faces/
+          john/
+            photo1.jpg ... photo50.jpg
+
+      Option B — Single flat image per person (fallback):
+        known_faces/
+          john.jpg
+
+    KEY FIX: Subfolder images are used directly without strict Haar detection.
+    50 webcam photos include dark/blurry frames intentionally — LBPH can still
+    learn from them. Only truly black frames (brightness < 10) are skipped.
     """
     print("[INFO] Loading known faces from:", KNOWN_FACES_DIR)
 
@@ -15,33 +29,43 @@ def build_and_save_model():
         print("[ERROR] known_faces/ folder not found!")
         return {}, False
 
-    files = [f for f in os.listdir(KNOWN_FACES_DIR)
-             if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    face_cascade = cv2.CascadeClassifier(CASCADE_PATH)
 
-    if not files:
+    faces     = []
+    labels    = []
+    label_map = {}
+    label_id  = 0
+
+    # ── Collect (name, path, is_subfolder) tuples ─────────────────────────
+    image_pairs = []
+
+    # Option A: subfolders per person
+    for entry in os.scandir(KNOWN_FACES_DIR):
+        if entry.is_dir():
+            name = entry.name
+            for f in os.scandir(entry.path):
+                if f.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    image_pairs.append((name, f.path, True))
+
+    # Option B: flat root images (fallback)
+    for f in os.scandir(KNOWN_FACES_DIR):
+        if f.is_file() and f.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+            name = os.path.splitext(f.name)[0]
+            image_pairs.append((name, f.path, False))
+
+    if not image_pairs:
         print("[ERROR] No image files found in known_faces/")
-        print("        Add photos named like:  john.jpg  sara.png")
         return {}, False
 
-    face_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    )
+    print(f"[INFO] Found {len(image_pairs)} image(s) to process...")
 
-    faces      = []
-    labels     = []
-    label_map  = {}   # {int_id: "Name"}
-    label_id   = 0
-
-    for filename in files:
-        name = os.path.splitext(filename)[0]   # "john.jpg" -> "john"
-        path = os.path.join(KNOWN_FACES_DIR, filename)
-        print(f"[INFO] Processing: {filename}  →  name='{name}'")
+    for name, path, is_subfolder in image_pairs:
+        filename = os.path.basename(path)
+        print(f"[INFO] Processing: {filename}  ->  name='{name}'")
 
         try:
-            # Load as grayscale
             pil_img = Image.open(path).convert("L")
 
-            # Resize large images so dlib/OpenCV doesn't crash
             w, h = pil_img.size
             if w > 800:
                 ratio   = 800 / w
@@ -49,22 +73,50 @@ def build_and_save_model():
 
             img_np = np.array(pil_img, dtype=np.uint8)
 
-            detected = face_cascade.detectMultiScale(img_np, 1.3, 5)
-
-            if len(detected) == 0:
-                print(f"  [WARN] No face detected in {filename} — skipping")
+            # Skip completely black frames
+            brightness = img_np.mean()
+            if brightness < 10:
+                print(f"  [WARN] Skipping black frame: {filename} (brightness={brightness:.1f})")
                 continue
 
-            x, y, w, h = detected[0]
-            face_roi   = img_np[y:y+h, x:x+w]
-            face_roi   = cv2.resize(face_roi, (200, 200))
+            if is_subfolder:
+                # Webcam captured frames — try lenient Haar first, fallback to full frame
+                detected = face_cascade.detectMultiScale(
+                    img_np,
+                    scaleFactor=1.05,
+                    minNeighbors=2,
+                    minSize=(20, 20),
+                )
+                if len(detected) > 0:
+                    x, y, fw, fh = detected[0]
+                    face_roi = img_np[y:y+fh, x:x+fw]
+                else:
+                    # Use full frame — LBPH still learns texture from it
+                    face_roi = img_np
+                    print(f"  [INFO] No face detected, using full frame")
+            else:
+                # Flat root image — strict Haar detection
+                detected = face_cascade.detectMultiScale(
+                    img_np,
+                    scaleFactor=SCALE_FACTOR,
+                    minNeighbors=MIN_NEIGHBORS,
+                    minSize=(30, 30),
+                )
+                if len(detected) == 0:
+                    print(f"  [WARN] No face detected in {filename} — skipping")
+                    continue
+                x, y, fw, fh = detected[0]
+                face_roi = img_np[y:y+fh, x:x+fw]
 
-            if name not in [v for v in label_map.values()]:
+            face_roi = cv2.resize(face_roi, (200, 200))
+
+            # Assign label id
+            if name not in label_map.values():
                 label_map[label_id] = name
                 current_id = label_id
                 label_id  += 1
             else:
-                current_id = [k for k, v in label_map.items() if v == name][0]
+                current_id = next(k for k, v in label_map.items() if v == name)
 
             faces.append(face_roi)
             labels.append(current_id)
@@ -75,10 +127,9 @@ def build_and_save_model():
             continue
 
     if not faces:
-        print("[ERROR] No valid faces found. Check your known_faces/ images.")
+        print("[ERROR] No valid faces found.")
         return {}, False
 
-    # Train LBPH recognizer
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     recognizer.train(faces, np.array(labels))
     recognizer.save(MODEL_PATH)
@@ -89,19 +140,10 @@ def build_and_save_model():
 
 
 def load_known_faces():
-    """
-    Load or rebuild the face model.
-    Returns (recognizer, label_map) or (None, {}) on failure.
-    """
-    face_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    )
-
-    # Always rebuild model from known_faces/ so new photos are picked up
+    face_cascade = cv2.CascadeClassifier(CASCADE_PATH)
     label_map, ok = build_and_save_model()
     if not ok:
         return None, {}, face_cascade
-
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     recognizer.read(MODEL_PATH)
     return recognizer, label_map, face_cascade

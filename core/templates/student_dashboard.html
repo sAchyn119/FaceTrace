@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Student Dashboard — FaceTrace</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+  </head>
+
+  <body>
+    <div class="container fade-in fade-in-1">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Student <span>Dashboard</span></div>
+          <div class="page-sub">
+            {% if student %}
+              <span class="mono">{{ student.name }}</span>
+              <span class="sep">•</span>
+              <span class="mono">Roll No: {{ student.roll_no }}</span>
+              {% if student.branch %}
+                <span class="sep">•</span>
+                <span class="mono">{{ student.branch }}</span>
+              {% endif %}
+            {% else %}
+              <span class="mono">Personal attendance and activity</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="page-header-actions">
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard' %}">← Main Dashboard</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'attendance' %}">Attendance</a>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="mini-stats fade-in fade-in-2">
+        <div class="mini-stat">
+          <div class="mini-stat-icon">📅</div>
+          <div>
+            <div class="mini-stat-num
+              {% if today_status == 'Present' %}" style="color: #00e676;{% else %}" style="color: #ff5252;{% endif %}">
+              {{ today_status }}
+            </div>
+            <div class="mini-stat-lbl">Today Status</div>
+          </div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon">✅</div>
+          <div>
+            <div class="mini-stat-num">{{ present_days }} / {{ total_days }}</div>
+            <div class="mini-stat-lbl">Days Present</div>
+          </div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon">🎯</div>
+          <div>
+            <div class="mini-stat-num"
+              style="color: {% if att_rate >= 75 %}#00e676{% elif att_rate >= 50 %}#ffab40{% else %}#ff5252{% endif %};">
+              {{ att_rate }}%
+            </div>
+            <div class="mini-stat-lbl">Attendance %</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col fade-in fade-in-3">
+
+        <!-- RECENT ATTENDANCE -->
+        <div class="section">
+          <div class="section-header">
+            <h3><span class="section-icon">🧾</span>Recent Attendance</h3>
+            <a href="{% url 'attendance' %}">Open report</a>
+          </div>
+
+          {% if attendance_records %}
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in attendance_records %}
+                <tr>
+                  <td>{{ record.date }}</td>
+                  <td>
+                    {% if record.status == 'present' %}
+                      <span style="color:#00e676;">✔ Present</span>
+                    {% else %}
+                      <span style="color:#ff5252;">✘ Absent</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ record.time|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% elif student %}
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-title">No attendance records yet</div>
+              <div class="empty-state-sub">Your attendance will appear here once marked.</div>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-state-icon">🔌</div>
+              <div class="empty-state-title">Student not found</div>
+              <div class="empty-state-sub">Your roll number could not be matched to a student record. Contact admin.</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="section">
+          <div class="section-header">
+            <h3><span class="section-icon">⚡</span>Quick Actions</h3>
+            <span class="role-badge role-student">Student</span>
+          </div>
+
+          {% if student %}
+          <div style="background:#0d1f2d; border-radius:10px; padding:14px; margin-bottom:16px;">
+            <div style="font-size:12px; color:#607d8b; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Student Info</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div>
+                <div style="font-size:11px; color:#607d8b;">Name</div>
+                <div style="font-size:14px; color:#e0f7fa;">{{ student.name }}</div>
+              </div>
+              <div>
+                <div style="font-size:11px; color:#607d8b;">Roll No</div>
+                <div style="font-size:14px; color:#e0f7fa;">{{ student.roll_no }}</div>
+              </div>
+              {% if student.branch %}
+              <div>
+                <div style="font-size:11px; color:#607d8b;">Branch</div>
+                <div style="font-size:14px; color:#e0f7fa;">{{ student.branch }}</div>
+              </div>
+              {% endif %}
+              {% if student.year %}
+              <div>
+                <div style="font-size:11px; color:#607d8b;">Year</div>
+                <div style="font-size:14px; color:#e0f7fa;">{{ student.year }}</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="quick-links">
+            <a class="quick-link" href="{% url 'dashboard' %}">
+              <span class="ql-icon">🏠</span> Main dashboard
+            </a>
+            <a class="quick-link" href="{% url 'attendance' %}">
+              <span class="ql-icon">📊</span> Attendance report
+            </a>
+            <a class="quick-link" href="{% url 'video_list' %}">
+              <span class="ql-icon">🎞️</span> Video history
+            </a>
+            <a class="quick-link" href="{% url 'logout' %}">
+              <span class="ql-icon">🚪</span> Logout
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>

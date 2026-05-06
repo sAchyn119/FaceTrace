@@ -1,0 +1,258 @@
+import cv2
+import os
+from datetime import datetime
+from config import (
+    CONFIDENCE_THRESHOLD,
+    MAX_LBPH_DISTANCE,       # FIX: new — rejects bad matches before label assignment
+    UNKNOWN_DIR,
+    SCALE_FACTOR,
+    MIN_NEIGHBORS,
+    MIN_FACE_SIZE,
+    MIN_RECOGNITION_FACE_SIZE,
+    BLUR_THRESHOLD,
+)
+
+
+def _non_max_suppression(boxes, overlap_threshold=0.4):
+    """
+    Suppress overlapping face detections — keeps only the largest box
+    when two boxes overlap more than overlap_threshold (IoU).
+    Prevents one face being detected twice and recognized as two people.
+    Boxes are OpenCV Haar format: (x, y, w, h).
+    """
+    if len(boxes) == 0:
+        return []
+
+    boxes = sorted(boxes, key=lambda b: b[2] * b[3], reverse=True)
+    kept = []
+
+    for box in boxes:
+        x1, y1, w1, h1 = box
+        dominated = False
+        for kx, ky, kw, kh in kept:
+            ix = max(0, min(x1 + w1, kx + kw) - max(x1, kx))
+            iy = max(0, min(y1 + h1, ky + kh) - max(y1, ky))
+            intersection = ix * iy
+            union = w1 * h1 + kw * kh - intersection
+            iou = intersection / union if union > 0 else 0
+            if iou > overlap_threshold:
+                dominated = True
+                break
+        if not dominated:
+            kept.append(box)
+
+    return kept
+
+
+def _intersection_over_union(box_a: tuple[int, ...], box_b: tuple[int, ...]) -> float:
+    """box: (top, right, bottom, left)"""
+    ta, ra, ba, la = box_a
+    tb, rb, bb, lb = box_b
+    iw = max(0, min(ra, rb) - max(la, lb))
+    ih = max(0, min(ba, bb) - max(ta, tb))
+    inter = iw * ih
+    if inter <= 0:
+        return 0.0
+    area_a = max(1, ra - la) * max(1, ba - ta)
+    area_b = max(1, rb - lb) * max(1, bb - tb)
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _center_distance(box_a: tuple[int, ...], box_b: tuple[int, ...]) -> float:
+    ta, ra, ba, la = box_a
+    tb, rb, bb, lb = box_b
+    ca_x = (la + ra) / 2.0
+    ca_y = (ta + ba) / 2.0
+    cb_x = (lb + rb) / 2.0
+    cb_y = (tb + bb) / 2.0
+    dx = ca_x - cb_x
+    dy = ca_y - cb_y
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def _merge_overlapping_detections(
+    results: list,
+    *,
+    iou_threshold: float = 0.35,
+    center_px: float = 48.0,
+) -> list:
+    """
+    One physical face can produce multiple Haar rectangles (or LBPH can
+    assign different labels to each). Suppress duplicates: keep the
+    highest-confidence box per cluster (IoU or very close centers).
+    """
+    if len(results) <= 1:
+        return results
+    pool = sorted(results, key=lambda r: r[1], reverse=True)
+    merged: list = []
+    while pool:
+        cur = pool.pop(0)
+        rest = []
+        for r in pool:
+            bcur, br = cur[2:], r[2:]
+            if _intersection_over_union(bcur, br) >= iou_threshold:
+                continue
+            if _center_distance(bcur, br) <= center_px:
+                continue
+            rest.append(r)
+        merged.append(cur)
+        pool = rest
+    return merged
+
+
+def recognize_faces(frame, recognizer, label_map, face_cascade,
+                    *, save_unknown: bool = True):
+    """
+    Detect and recognise all faces in a given frame using OpenCV LBPH.
+    Returns list of (name, confidence%, top, right, bottom, left).
+
+    KEY FIX: Added MAX_LBPH_DISTANCE check.
+    LBPH recognizer.predict() ALWAYS returns a label — even for completely
+    unknown faces. Without a raw distance check, strangers get matched to
+    the closest registered person (false positive like "Sachin Tendulkar").
+    Now we reject any match where raw LBPH distance > MAX_LBPH_DISTANCE.
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    try:
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        gray = clahe.apply(gray)
+    except Exception:
+        pass
+
+    detected = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=SCALE_FACTOR,
+        minNeighbors=MIN_NEIGHBORS,
+        minSize=MIN_FACE_SIZE,
+        flags=cv2.CASCADE_SCALE_IMAGE,
+    )
+
+    # Suppress overlapping boxes BEFORE recognition — one face can otherwise
+    # yield two rectangles and LBPH labels them as different people.
+    if len(detected) > 1:
+        detected = _non_max_suppression(list(detected), overlap_threshold=0.4)
+
+    # Eye cascade to validate real human faces (trees/objects have no eyes)
+    eye_cascade = cv2.CascadeClassifier(
+        cv2.data.haarcascades + "haarcascade_eye.xml"
+    )
+
+    results = []
+
+    for (x, y, w, h) in detected:
+        # ── Validate: check for eyes inside detected region ──────────────
+        # This rejects false positives like trees, walls, patterns.
+        roi_check = gray[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(
+            roi_check,
+            scaleFactor=1.1,
+            minNeighbors=3,
+            minSize=(15, 15),
+        )
+        if len(eyes) == 0:
+            # No eyes found — not a real face, skip
+            continue
+
+        # Too small face — unreliable for LBPH
+        if w < MIN_RECOGNITION_FACE_SIZE[0] or h < MIN_RECOGNITION_FACE_SIZE[1]:
+            if save_unknown:
+                _save_unknown_face(frame, x, y, w, h)
+            top, right, bottom, left = y, x + w, y + h, x
+            results.append(("Unknown", 0, top, right, bottom, left))
+            continue
+
+        roi = gray[y:y + h, x:x + w]
+
+        # ── Upscale small/distant faces before recognition ────────────────
+        MIN_UPSCALE = 160
+        rh, rw = roi.shape[:2]
+        if rw < MIN_UPSCALE or rh < MIN_UPSCALE:
+            scale = max(MIN_UPSCALE / rw, MIN_UPSCALE / rh)
+            roi = cv2.resize(
+                roi,
+                (int(rw * scale), int(rh * scale)),
+                interpolation=cv2.INTER_CUBIC
+            )
+
+        roi = cv2.resize(roi, (200, 200))
+
+        # Blur gate — reject motion blur / low light crops
+        try:
+            blur = cv2.Laplacian(roi, cv2.CV_64F).var()
+            if blur < float(BLUR_THRESHOLD):
+                if save_unknown:
+                    _save_unknown_face(frame, x, y, w, h)
+                top, right, bottom, left = y, x + w, y + h, x
+                results.append(("Unknown", 0, top, right, bottom, left))
+                continue
+        except Exception:
+            pass
+
+        name       = "Unknown"
+        confidence = 0
+
+        try:
+            label, dist = recognizer.predict(roi)
+
+            # ── KEY FIX ──────────────────────────────────────────────────────
+            # LBPH always returns SOME label. Without this distance check,
+            # unregistered faces get matched to the nearest registered person.
+            # dist = raw LBPH distance (lower = better match)
+            # We reject if dist is too high BEFORE checking confidence.
+            # ─────────────────────────────────────────────────────────────────
+            if dist > MAX_LBPH_DISTANCE:
+                # Distance too high — definitively Unknown, do not assign name
+                name       = "Unknown"
+                confidence = 0
+                print(f"[DEBUG] Rejected: dist={dist:.1f} > MAX_LBPH_DISTANCE={MAX_LBPH_DISTANCE}")
+            else:
+                confidence = round(max(0.0, min(100.0, 100.0 - float(dist))), 1)
+
+                if confidence >= CONFIDENCE_THRESHOLD:
+                    name = label_map.get(label, "Unknown")
+                    print(f"[DEBUG] Recognized: {name}, dist={dist:.1f}, conf={confidence}%")
+                else:
+                    print(f"[DEBUG] Low confidence: dist={dist:.1f}, conf={confidence}% < threshold={CONFIDENCE_THRESHOLD}")
+
+        except Exception as e:
+            print(f"[WARN] predict error: {e}")
+
+        if save_unknown and name == "Unknown":
+            _save_unknown_face(frame, x, y, w, h)
+
+        top, right, bottom, left = y, x + w, y + h, x
+        results.append((name, confidence, top, right, bottom, left))
+
+    return _merge_overlapping_detections(results)
+
+
+_last_saved: dict = {}
+
+
+def _save_unknown_face(frame, x: int, y: int, w: int, h: int) -> None:
+    try:
+        os.makedirs(UNKNOWN_DIR, exist_ok=True)
+
+        grid    = 64
+        pos_key = f"{x // grid}_{y // grid}"
+        now     = datetime.now()
+
+        last = _last_saved.get(pos_key)
+        if last and (now - last).total_seconds() < 10:
+            return
+
+        _last_saved[pos_key] = now
+
+        face_crop = frame[y:y + h, x:x + w]
+        if face_crop.size == 0:
+            return
+
+        timestamp = now.strftime("%Y%m%d_%H%M%S_%f")
+        filename  = os.path.join(UNKNOWN_DIR, f"unknown_{timestamp}.jpg")
+        cv2.imwrite(filename, face_crop)
+        print(f"[UNKNOWN] Saved → {filename}")
+
+    except Exception as e:
+        print(f"[WARN] Could not save unknown face: {e}")
